@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aditya Rajadana - Personal Developer Portfolio
 
-## Getting Started
+![Portfolio Preview](/public/png/me.jpg)
 
-First, run the development server:
+A modern, dynamic, and highly interactive personal portfolio website built with **Next.js**, **Tailwind CSS**, and **Supabase**. The platform not only showcases projects, experiences, and certificates but also includes a fully functional, secure **Admin Dashboard** allowing real-time content management without touching the codebase.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ✨ Key Features
+
+- **Dynamic Content Management (CMS):** Complete CRUD (Create, Read, Update, Delete) capabilities via a hidden Admin Dashboard for Projects, Experiences, Certificates, Organizations, and site-wide Settings.
+- **Relational Database Architecture:** Powered by Supabase (PostgreSQL) with a fully normalized schema and robust Row Level Security (RLS).
+- **Stunning UI/UX:** 
+  - Custom "Galaxy" interactive background with mouse repulsion physics.
+  - Smooth scroll reveals, typing effects, and animated number counters.
+  - Modern "Glassmorphism" aesthetic with a refined dark-mode purple neon theme.
+- **Interactive Timeline:** A scrollable, drag-and-drop sortable timeline for educational and professional history.
+- **GitHub Integration:** Live GitHub contribution graph visualization using `react-github-calendar`.
+- **Anti-Sleep Ping:** Automatically pings the Supabase database on every visit to prevent the free-tier project from being paused due to inactivity.
+
+## 🛠️ Tech Stack
+
+- **Framework:** [Next.js 14+](https://nextjs.org/) (App Router)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Database / Backend:** [Supabase](https://supabase.com/) (PostgreSQL)
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **Deployment:** Vercel (Recommended)
+
+## 📁 Project Structure (App Router)
+
+Following the latest best practices, this project utilizes Next.js Route Groups and modular component design:
+
+```
+app/
+├── (main)/                     # Main public routes
+│   ├── page.tsx                # Home Page
+│   ├── projects/               # Projects Gallery
+│   ├── experiences/            # Experience Timeline
+│   ├── certificates/           # Certificates Showcase
+│   └── dashboard/              # Admin CMS Dashboard
+├── login/                      # Admin Authentication
+├── components/                 # Reusable UI Components
+│   ├── layout/                 # Navbar, App Layouts
+│   ├── sections/               # Home, Projects, etc.
+│   ├── ui/                     # Modals, Counters, Reveals
+│   ├── icons/                  # SVG Custom Icons
+│   └── effects/                # Interactive Canvas (Galaxy)
+└── lib/                        # Utilities & Supabase Client
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Getting Started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 1. Clone the repository
+```bash
+git clone https://github.com/adityarajadn/2026-portfolio.git
+cd 2026-portfolio
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-## Learn More
+### 3. Setup Supabase
+1. Create a new project on [Supabase](https://supabase.com/).
+2. Run the SQL scripts provided in the root directory via the Supabase SQL Editor:
+   - Run `supabase_schema_v2.sql` to generate the normalized tables, set up RLS, and handle policies.
+   - Run `supabase_seed.sql` to inject dummy data for immediate testing.
+3. Setup a storage bucket named `portfolio-images` and make it public.
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Environment Variables
+Create a `.env.local` file in the root directory and add your Supabase credentials:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 5. Run the Development Server
+```bash
+npm run dev
+```
+Navigate to `http://localhost:3000` to view the site.
 
-## Deploy on Vercel
+## 🔒 Accessing the Dashboard
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To manage your portfolio content:
+1. Navigate to `/login`.
+2. Enter the admin credentials (configured in your database/authentication logic).
+3. Access `/dashboard` to add new projects, manage tech stacks, categories, and adjust the timeline via drag-and-drop.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 💡 Developer Notes
+- **Keep-Alive Mechanism:** The `PortfolioApp.tsx` component automatically upserts a `last_active_ping` key to the `settings` table on mount. This ensures your Supabase Hobby Plan database registers write activity and does not get paused.
+- **Dynamic Settings:** Features like social media links, available tech stacks, and project categories are stored as comma-separated values in the `settings` table and can be manipulated directly from the Dashboard UI.
+
+---
+*Designed & Built by [Aditya Rajadana](https://github.com/adityarajadn)*
