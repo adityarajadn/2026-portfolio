@@ -13,7 +13,7 @@ interface Certificate {
   description?: string;
 }
 
-interface CertificatesViewProps {
+interface CertificatesSectionProps {
   certificates: Certificate[];
   certFilter: string;
   onFilterChange: (f: string) => void;
@@ -21,7 +21,7 @@ interface CertificatesViewProps {
   onSelect: (item: Certificate) => void;
 }
 
-export default function CertificatesView({ certificates, certFilter, onFilterChange, onBack, onSelect }: CertificatesViewProps) {
+export default function CertificatesSection({ certificates, certFilter, onFilterChange, onBack, onSelect }: CertificatesSectionProps) {
   const filtered = certFilter === "All" ? certificates : certificates.filter((c) => c.category === certFilter);
 
   return (

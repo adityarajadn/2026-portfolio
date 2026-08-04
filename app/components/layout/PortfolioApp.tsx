@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Globe, Zap, Layout, Database, Code2, Shield, Cpu, Flame, Terminal, PenTool, ExternalLink } from "lucide-react";
-import Navbar from "./Navbar";
-import Modal from "./Modal";
-import HomeView from "./views/HomeView";
-import ProjectsView from "./views/ProjectsView";
-import ExperiencesView from "./views/ExperiencesView";
-import CertificatesView from "./views/CertificatesView";
-import { supabase } from "../../lib/supabase";
-import Galaxy from "./Galaxy";
+import Navbar from "@/app/components/layout/Navbar";
+import Modal from "@/app/components/ui/Modal";
+import HomeSection from "@/app/components/sections/HomeSection";
+import ProjectsSection from "@/app/components/sections/ProjectsSection";
+import ExperiencesSection from "@/app/components/sections/ExperiencesSection";
+import CertificatesSection from "@/app/components/sections/CertificatesSection";
+import { supabase, upsertData } from "@/app/lib/supabase";
+import Galaxy from "@/app/components/effects/Galaxy";
 
 type View = "home" | "projects" | "experiences" | "certificates";
 
@@ -51,53 +51,53 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [pRes, eRes, cRes, coRes, sRes] = await Promise.all([
-          supabase
-            .from("portfolio_items")
-            .select("*")
-            .eq("type", "proyek")
-            .order("id", { ascending: false }),
-          supabase
-            .from("portfolio_items")
-            .select("*")
-            .eq("type", "pengalaman")
-            .order("id", { ascending: true }),
-          supabase.from("portfolio_items").select("*").eq("type", "sertifikat"),
-          supabase
-            .from("companies")
-            .select("*")
-            .order("id", { ascending: true }),
-          supabase.from("portfolio_items").select("*").in("type", ["setting", "organization", "timeline"]),
+        // Ping database to keep free Supabase project active
+        upsertData("settings", { key: "last_active_ping", value: new Date().toISOString() }, "key").catch(err => console.error(err));
+
+        const [pRes, eRes, cRes, coRes, sRes, oRes, tRes] = await Promise.all([
+          supabase.from("projects").select("*").order("sort_order", { ascending: true }),
+          supabase.from("experiences").select("*").order("sort_order", { ascending: true }),
+          supabase.from("certificates").select("*").order("sort_order", { ascending: true }),
+          supabase.from("companies").select("*").order("id", { ascending: true }),
+          supabase.from("settings").select("*"),
+          supabase.from("organizations").select("*").order("sort_order", { ascending: true }),
+          supabase.from("timelines").select("*").order("sort_order", { ascending: true }),
         ]);
-        const projs = (pRes.data || []).map((item) => {
-          const descParts = (item.description || "").split("|||TECH:");
-          return {
-            ...item,
-            img: item.image,
-            desc: descParts[0],
-            description: descParts[0],
-            category: item.position || "Web",
-            tech: descParts[1] ? descParts[1].split(",") : [],
-            demo_url: item.link || "",
-          };
-        });
+        const projs = (pRes.data || []).map((item) => ({
+          ...item,
+          img: item.image_url,
+          desc: item.description,
+          description: item.description,
+          category: item.category || "Web",
+          tech: item.tech_stack || [],
+          demo_url: item.demo_url || "",
+          github_url: item.github_url || ""
+        }));
         setProjects(projs as any);
 
-        // Map kolom 'image' ke 'img' agar sesuai dengan props komponen lama
         const exps = (eRes.data || []).map((item) => ({
           ...item,
-          img: item.image,
+          img: item.image_url,
         }));
         setExperiences(exps as any);
 
         const certs = (cRes.data || []).map((item) => ({
           ...item,
-          img: item.image,
+          img: item.image_url,
+          gambar_url: item.image_url,
+          category: item.category,
+          issuer: item.issuer
         }));
         setCertificates(certs as any);
 
         setCompanies(coRes.data || []);
-        setSettings(sRes.data || []);
+        
+        const combinedSettings = [
+          ...(sRes.data || []).map((s: any) => ({ type: 'setting', title: s.key, link: s.value })),
+          ...(oRes.data || []).map((o: any) => ({ type: 'organization', title: o.name, description: o.role, position: o.period, image: o.icon_url, link: o.sort_order?.toString() })),
+          ...(tRes.data || []).map((t: any) => ({ type: 'timeline', title: t.name, position: t.period, link: t.sort_order?.toString() }))
+        ];
+        setSettings(combinedSettings as any);
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
@@ -171,7 +171,7 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
 
       <main className="relative z-10">
         {currentView === "home" && (
-          <HomeView
+          <HomeSection
             projects={projects}
             experiences={experiences}
             certificates={certificates}
@@ -184,7 +184,7 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
         )}
 
         {currentView === "projects" && (
-          <ProjectsView
+          <ProjectsSection
             projects={projects}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -198,7 +198,7 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
         )}
 
         {currentView === "experiences" && (
-          <ExperiencesView
+          <ExperiencesSection
             experiences={experiences}
             onBack={() => {
               router.push("/");
@@ -208,7 +208,7 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
         )}
 
         {currentView === "certificates" && (
-          <CertificatesView
+          <CertificatesSection
             certificates={certificates}
             certFilter={certFilter}
             onFilterChange={setCertFilter}

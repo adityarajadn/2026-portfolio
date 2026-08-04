@@ -10,13 +10,13 @@ interface Experience {
   description?: string;
 }
 
-interface ExperiencesViewProps {
+interface ExperiencesSectionProps {
   experiences: Experience[];
   onBack: () => void;
   onSelect: (item: Experience) => void;
 }
 
-export default function ExperiencesView({ experiences, onBack, onSelect }: ExperiencesViewProps) {
+export default function ExperiencesSection({ experiences, onBack, onSelect }: ExperiencesSectionProps) {
   return (
     <section className="pt-40 pb-32 px-4 md:px-12 max-w-7xl mx-auto min-h-screen text-left">
       <button

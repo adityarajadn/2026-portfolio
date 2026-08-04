@@ -8,7 +8,8 @@ import {
   updateData,
   deleteData,
   uploadImage,
-} from "../../lib/supabase";
+  upsertData,
+} from "@/app/lib/supabase";
 import {
   Camera,
   Award,
@@ -22,8 +23,9 @@ import {
   Settings,
   Briefcase,
   GripVertical,
+  X,
 } from "lucide-react";
-import Modal from "../_components/Modal";
+import Modal from "@/app/components/ui/Modal";
 import Image from "next/image";
 
 interface PortfolioItem {
@@ -31,9 +33,11 @@ interface PortfolioItem {
   type: string;
   title: string;
   position: string;
+  category?: string;
   description: string;
   link: string;
   image: string;
+  tech?: string[];
 }
 
 export default function DashboardPage() {
@@ -47,6 +51,7 @@ export default function DashboardPage() {
   const [formData, setFormData] = useState({
     title: "",
     position: "",
+    category: "",
     description: "",
     link: "",
     image: "",
@@ -68,12 +73,34 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     setIsLoading(true);
-    const result = await fetchData("portfolio_items");
-    if (result) setData(result as PortfolioItem[]);
+    const pRes = await fetchData("projects") || [];
+    const eRes = await fetchData("experiences") || [];
+    const cRes = await fetchData("certificates") || [];
+    const oRes = await fetchData("organizations") || [];
+    const tRes = await fetchData("timelines") || [];
+    const sRes = await fetchData("settings") || [];
+
+    const normalized = [
+      ...pRes.map((p: any) => ({ id: p.id, type: 'proyek', title: p.title, position: p.category || '', category: p.category || '', description: p.description || '', link: p.demo_url || '', image: p.image_url || '', tech: p.tech_stack || [] })),
+      ...eRes.map((e: any) => ({ id: e.id, type: 'pengalaman', title: e.title, position: '', category: e.category || '', description: e.description || '', link: (e.sort_order || 0).toString(), image: e.image_url || '' })),
+      ...cRes.map((c: any) => ({ id: c.id, type: 'sertifikat', title: c.title, position: c.issuer || '', category: c.category || '', description: c.issuer || '', link: (c.sort_order || 0).toString(), image: c.image_url || '' })),
+      ...oRes.map((o: any) => ({ id: o.id, type: 'organization', title: o.name, position: o.period || '', description: o.role || '', link: (o.sort_order || 0).toString(), image: o.icon_url || '' })),
+      ...tRes.map((t: any) => ({ id: t.id, type: 'timeline', title: t.name, position: t.period || '', description: '', link: (t.sort_order || 0).toString(), image: '' })),
+      ...sRes.map((s: any) => ({ id: s.id, type: 'setting', title: s.key, position: '', description: '', link: s.value || '', image: '' }))
+    ];
+    setData(normalized as PortfolioItem[]);
     setIsLoading(false);
   };
 
   const filteredData = data.filter((item) => item.type === activeTab);
+
+  const categoriesSetting = data.find(d => d.type === "setting" && d.title === "categories");
+  const globalCategories = categoriesSetting && categoriesSetting.link ? categoriesSetting.link.split(",") : ["Web", "Game", "Mobile", "UI/UX", "Data Science"];
+
+  const techsSetting = data.find(d => d.type === "setting" && d.title === "tech_stacks");
+  const globalTechs = techsSetting && techsSetting.link ? techsSetting.link.split(",") : ["React", "Next.js", "Tailwind", "Node.js", "TypeScript", "Supabase", "PostgreSQL", "Unity", "C#", "Godot", "Figma", "UI/UX"];
+
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -87,56 +114,33 @@ export default function DashboardPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     let imageUrl = formData.image;
-
-    // Jika ada file baru yang diunggah
     if (formData.file) {
       const uploadRes = await uploadImage(formData.file);
-      if (uploadRes.success && uploadRes.url) {
-        imageUrl = uploadRes.url;
-      }
+      if (uploadRes.success && uploadRes.url) imageUrl = uploadRes.url;
     }
 
-    const finalDesc =
-      activeTab === "proyek" && formData.tech.length > 0
-        ? `${formData.description}|||TECH:${formData.tech.join(",")}`
-        : formData.description;
-
-    const payload = {
-      type: activeTab,
-      title: formData.title,
-      position: formData.position,
-      description: finalDesc,
-      link: formData.link,
-      image: imageUrl,
-    };
+    let tableName = "";
+    let payload: any = {};
+    if (activeTab === "proyek") {
+      tableName = "projects";
+      payload = { title: formData.title, category: formData.category, description: formData.description, demo_url: formData.link, image_url: imageUrl, tech_stack: formData.tech };
+    } else if (activeTab === "pengalaman") {
+      tableName = "experiences";
+      payload = { title: formData.title, category: formData.category, description: formData.description, image_url: imageUrl, sort_order: parseInt(formData.link || "0") };
+    } else if (activeTab === "sertifikat") {
+      tableName = "certificates";
+      payload = { title: formData.title, category: formData.category, issuer: formData.position, image_url: imageUrl, sort_order: parseInt(formData.link || "0") };
+    }
 
     if (editingId) {
-      const res = await updateData("portfolio_items", editingId, payload);
-      if (res.success) {
-        setData(
-          data.map((item) =>
-            item.id === editingId ? { ...item, ...payload } : item,
-          ),
-        );
-      }
+      await updateData(tableName, editingId, payload);
     } else {
-      const res = await insertData("portfolio_items", payload);
-      if (res.success && res.data) {
-        setData([res.data[0] as PortfolioItem, ...data]);
-      }
+      await insertData(tableName, payload);
     }
 
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({
-      title: "",
-      position: "",
-      description: "",
-      link: "",
-      image: "",
-      tech: [],
-      file: null,
-    });
+    loadData();
   };
 
   const handleDelete = (id: number) => {
@@ -145,7 +149,17 @@ export default function DashboardPage() {
 
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
-    const res = await deleteData("portfolio_items", deleteConfirmId);
+    const itemToDelete = data.find((d) => d.id === deleteConfirmId);
+    if (!itemToDelete) return;
+    let table = "";
+    if (itemToDelete.type === "proyek") table = "projects";
+    else if (itemToDelete.type === "pengalaman") table = "experiences";
+    else if (itemToDelete.type === "sertifikat") table = "certificates";
+    else if (itemToDelete.type === "organization") table = "organizations";
+    else if (itemToDelete.type === "timeline") table = "timelines";
+    else if (itemToDelete.type === "setting") table = "settings";
+
+    const res = await deleteData(table, deleteConfirmId);
     if (res.success) {
       setData(data.filter((item) => item.id !== deleteConfirmId));
     }
@@ -157,6 +171,7 @@ export default function DashboardPage() {
     setFormData({
       title: "",
       position: "",
+      category: "",
       description: "",
       link: "",
       image: "",
@@ -168,14 +183,14 @@ export default function DashboardPage() {
 
   const handleEdit = (item: PortfolioItem) => {
     setEditingId(item.id);
-    const descParts = (item.description || "").split("|||TECH:");
     setFormData({
       title: item.title,
       position: item.position,
-      description: descParts[0],
+      category: item.category || "",
+      description: item.description,
       link: item.link || "",
       image: item.image || "",
-      tech: descParts[1] ? descParts[1].split(",") : [],
+      tech: item.tech || [],
       file: null,
     });
     setIsModalOpen(true);
@@ -259,6 +274,98 @@ export default function DashboardPage() {
       <main className="flex-1 p-8 overflow-y-auto">
         {activeTab === "pengaturan" ? (
           <div className="max-w-3xl mx-auto space-y-8">
+
+            {/* Pengaturan Kategori */}
+            <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Kategori Portofolio
+              </h2>
+              <p className="text-neutral-400 text-sm mb-6">
+                Kelola daftar kategori yang dapat dipilih pada saat menambahkan Proyek, Sertifikat, dan Galeri.
+              </p>
+              
+              <div className="flex flex-wrap gap-2 mb-6">
+                {globalCategories.map((cat, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-purple-600/20 text-purple-300 px-3 py-1.5 rounded-full text-sm font-medium border border-purple-500/30">
+                    {cat}
+                    <button type="button" onClick={async () => {
+                      const newCats = globalCategories.filter(c => c !== cat);
+                      await upsertData("settings", { key: "categories", value: newCats.join(",") }, "key");
+                      loadData();
+                    }} className="hover:text-red-400 transition-colors">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.target as HTMLFormElement;
+                const input = form.elements.namedItem("new_category") as HTMLInputElement;
+                if (!input.value.trim()) return;
+                const newCat = input.value.trim();
+                if (globalCategories.includes(newCat)) {
+                   alert("Kategori sudah ada!"); return;
+                }
+                const newCats = [...globalCategories, newCat];
+                await upsertData("settings", { key: "categories", value: newCats.join(",") }, "key");
+                input.value = "";
+                loadData();
+              }} className="flex gap-3">
+                <input type="text" name="new_category" placeholder="Kategori baru (ex: Backend)..." className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors text-sm" />
+                <button type="submit" className="bg-purple-600 text-white font-medium rounded-xl px-6 py-3 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20 text-sm">
+                  Tambah
+                </button>
+              </form>
+            </div>
+
+
+            {/* Pengaturan Tech Stack */}
+            <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Pengaturan Tech Stack
+              </h2>
+              <p className="text-neutral-400 text-sm mb-6">
+                Kelola daftar Tech Stack yang dapat dipilih pada saat menambahkan Proyek.
+              </p>
+              
+              <div className="flex flex-wrap gap-2 mb-6">
+                {globalTechs.map((tech, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-purple-600/20 text-purple-300 px-3 py-1.5 rounded-full text-sm font-medium border border-purple-500/30">
+                    {tech}
+                    <button type="button" onClick={async () => {
+                      const newTechs = globalTechs.filter(t => t !== tech);
+                      await upsertData("settings", { key: "tech_stacks", value: newTechs.join(",") }, "key");
+                      loadData();
+                    }} className="hover:text-red-400 transition-colors">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.target as HTMLFormElement;
+                const input = form.elements.namedItem("new_tech") as HTMLInputElement;
+                if (!input.value.trim()) return;
+                const newTech = input.value.trim();
+                if (globalTechs.includes(newTech)) {
+                   alert("Tech Stack sudah ada!"); return;
+                }
+                const newTechs = [...globalTechs, newTech];
+                await upsertData("settings", { key: "tech_stacks", value: newTechs.join(",") }, "key");
+                input.value = "";
+                loadData();
+              }} className="flex gap-3">
+                <input type="text" name="new_tech" placeholder="Tech Stack baru (ex: Prisma)..." className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors text-sm" />
+                <button type="submit" className="bg-purple-600 text-white font-medium rounded-xl px-6 py-3 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20 text-sm">
+                  Tambah
+                </button>
+              </form>
+            </div>
+
             <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl">
               <h2 className="text-2xl font-bold text-white mb-2">
                 Pengaturan Link Sosial Media
@@ -293,23 +400,7 @@ export default function DashboardPage() {
                   ];
 
                   for (const u of updates) {
-                    const existing = settings.find((s) => s.title === u.title);
-                    if (existing) {
-                      if (existing.link !== u.link) {
-                        await updateData("portfolio_items", existing.id, {
-                          link: u.link,
-                        });
-                      }
-                    } else {
-                      await insertData("portfolio_items", {
-                        type: "setting",
-                        title: u.title,
-                        link: u.link,
-                        position: "",
-                        description: "",
-                        image: "",
-                      });
-                    }
+                    await upsertData("settings", { key: u.title, value: u.link }, "key");
                   }
                   alert("Pengaturan berhasil disimpan!");
                   loadData();
@@ -396,21 +487,13 @@ export default function DashboardPage() {
                   ).value;
 
                   if (editingOrg) {
-                    await updateData("portfolio_items", editingOrg.id, {
-                      title: nama,
-                      position: tahun,
-                      image: icon,
-                      description: role,
+                    await updateData("organizations", editingOrg.id, {
+                      name: nama, period: tahun, icon_url: icon, role: role
                     });
                     setEditingOrg(null);
                   } else {
-                    await insertData("portfolio_items", {
-                      type: "organization",
-                      title: nama,
-                      position: tahun,
-                      image: icon,
-                      description: role,
-                      link: "",
+                    await insertData("organizations", {
+                      name: nama, period: tahun, icon_url: icon, role: role, sort_order: 0
                     });
                   }
 
@@ -551,8 +634,8 @@ export default function DashboardPage() {
 
                         Promise.all(
                           currentOrg.map((item, i) =>
-                            updateData("portfolio_items", item.id, {
-                              link: i.toString(),
+                            updateData("organizations", item.id, {
+                              sort_order: i,
                             }),
                           ),
                         );
@@ -633,21 +716,13 @@ export default function DashboardPage() {
                   ).value;
 
                   if (editingTimeline) {
-                    await updateData("portfolio_items", editingTimeline.id, {
-                      title: nama,
-                      position: tahun,
-                      image: "",
-                      description: "",
+                    await updateData("timelines", editingTimeline.id, {
+                      name: nama, period: tahun
                     });
                     setEditingTimeline(null);
                   } else {
-                    await insertData("portfolio_items", {
-                      type: "timeline",
-                      title: nama,
-                      position: tahun,
-                      image: "",
-                      description: "",
-                      link: "",
+                    await insertData("timelines", {
+                      name: nama, period: tahun, sort_order: 0
                     });
                   }
 
@@ -763,8 +838,8 @@ export default function DashboardPage() {
 
                         Promise.all(
                           currentTimeline.map((item, i) =>
-                            updateData("portfolio_items", item.id, {
-                              link: i.toString(),
+                            updateData("organizations", item.id, {
+                              sort_order: i,
                             }),
                           ),
                         );
@@ -890,7 +965,7 @@ export default function DashboardPage() {
                               {item.title}
                             </p>
                             <p className="text-xs text-purple-400">
-                              {item.position}
+                              {item.category ? item.category + (item.position ? ' - ' + item.position : '') : item.position}
                             </p>
                           </td>
                           <td className="px-6 py-4">
@@ -967,42 +1042,46 @@ export default function DashboardPage() {
                   placeholder="Contoh: Juara 1 Web Design"
                 />
               </div>
-              <div>
-                <label className="block text-sm text-neutral-400 mb-1">
-                  {activeTab === "proyek"
-                    ? "Category"
-                    : activeTab === "sertifikat"
-                      ? "Issuer / Penyelenggara"
-                      : "Posisi / Peran"}
-                </label>
-                <input
-                  type="text"
-                  required
-                  list="category-options"
-                  value={formData.position}
-                  onChange={(e) =>
-                    setFormData({ ...formData, position: e.target.value })
-                  }
-                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                  placeholder={
-                    activeTab === "proyek"
-                      ? "Contoh: Web, Game, Mobile, dll"
-                      : activeTab === "sertifikat"
-                        ? "Contoh: Dicoding, Coursera"
-                        : "Contoh: Peserta, Programmer"
-                  }
-                />
-                {activeTab === "proyek" && (
-                  <datalist id="category-options">
-                    <option value="Web" />
-                    <option value="Game" />
-                    <option value="Mobile" />
-                    <option value="UI/UX" />
-                    <option value="Data Science" />
-                  </datalist>
-                )}
-              </div>
+              {activeTab !== "proyek" && (
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">
+                    {activeTab === "sertifikat" ? "Issuer / Penyelenggara" : "Posisi / Peran (Opsional)"}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
+                    placeholder={activeTab === "sertifikat" ? "Contoh: Dicoding, Coursera" : "Contoh: Peserta, Programmer"}
+                  />
+                </div>
+              )}
             </div>
+
+
+            {["proyek", "pengalaman", "sertifikat"].includes(activeTab) && (
+              <div>
+                <label className="block text-sm text-neutral-400 mb-2">
+                  Kategori
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {globalCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, category: cat })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        formData.category === cat
+                          ? "bg-purple-600 border-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+                          : "bg-white/5 border-white/10 text-neutral-400 hover:text-white hover:border-white/20"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm text-neutral-400 mb-1">
@@ -1026,20 +1105,7 @@ export default function DashboardPage() {
                   Tech Stack (Opsional)
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {[
-                    "React",
-                    "Next.js",
-                    "Tailwind",
-                    "Node.js",
-                    "TypeScript",
-                    "Supabase",
-                    "PostgreSQL",
-                    "Unity",
-                    "C#",
-                    "Godot",
-                    "Figma",
-                    "UI/UX",
-                  ].map((tech) => (
+                  {globalTechs.map((tech) => (
                     <button
                       key={tech}
                       type="button"

@@ -64,6 +64,26 @@ export async function updateData(tableName: string, id: number | string, payload
 }
 
 /**
+ * Contoh Fungsi untuk Upsert Data
+ * @param tableName Nama tabel
+ * @param payload Data baru
+ * @param onConflict Kolom unique untuk referensi upsert
+ */
+export async function upsertData(tableName: string, payload: any, onConflict: string = 'id') {
+  const { data, error } = await supabase
+    .from(tableName)
+    .upsert(payload, { onConflict })
+    .select();
+    
+  if (error) {
+    console.error(`Error upserting data di ${tableName}:`, error.message);
+    return { success: false, error: error.message };
+  }
+  
+  return { success: true, data };
+}
+
+/**
  * Contoh Fungsi untuk Menghapus Data
  * @param tableName Nama tabel
  * @param id ID data yang ingin dihapus

@@ -21,13 +21,13 @@ import {
   Mail,
   PenTool,
 } from "lucide-react";
-import ScrollReveal from "../ScrollReveal";
-import TypingEffect from "../TypingEffect";
-import AnimatedCounter from "../AnimatedCounter";
-import GithubIcon from "../GithubIcon";
-import ItchIcon from "../ItchIcon";
-import InstagramIcon from "../InstagramIcon";
-import LinkedinIcon from "../LinkedinIcon";
+import ScrollReveal from "@/app/components/ui/ScrollReveal";
+import TypingEffect from "@/app/components/ui/TypingEffect";
+import AnimatedCounter from "@/app/components/ui/AnimatedCounter";
+import GithubIcon from "@/app/components/icons/GithubIcon";
+import ItchIcon from "@/app/components/icons/ItchIcon";
+import InstagramIcon from "@/app/components/icons/InstagramIcon";
+import LinkedinIcon from "@/app/components/icons/LinkedinIcon";
 import { GitHubCalendar } from "react-github-calendar";
 
 interface Project {
@@ -63,7 +63,7 @@ interface Company {
   logo_url: string;
 }
 
-interface HomeViewProps {
+interface HomeSectionProps {
   projects: Project[];
   experiences: Experience[];
   certificates: Certificate[];
@@ -110,7 +110,7 @@ const skillsData = [
   },
 ];
 
-export default function HomeView({
+export default function HomeSection({
   projects,
   experiences,
   certificates,
@@ -119,7 +119,7 @@ export default function HomeView({
   onNavigate,
   onViewAll,
   onSelectItem,
-}: HomeViewProps) {
+}: HomeSectionProps) {
   const getSettingLink = (key: string, defaultUrl: string) => {
     const s = settings.find((x) => x.title === key);
     return s?.link || defaultUrl;

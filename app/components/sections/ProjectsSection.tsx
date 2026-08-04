@@ -1,9 +1,9 @@
 "use client";
 
 import { ArrowLeft, Search, ExternalLink, Globe, Zap, Layout, Database, Code2, Shield, Cpu, Flame, Terminal, PenTool } from "lucide-react";
-import ScrollReveal from "../ScrollReveal";
-import ItchIcon from "../ItchIcon";
-import GithubIcon from "../GithubIcon";
+import ScrollReveal from "@/app/components/ui/ScrollReveal";
+import ItchIcon from "@/app/components/icons/ItchIcon";
+import GithubIcon from "@/app/components/icons/GithubIcon";
 
 interface Project {
   id: string;
@@ -17,7 +17,7 @@ interface Project {
   demo_url?: string;
 }
 
-interface ProjectsViewProps {
+interface ProjectsSectionProps {
   projects: Project[];
   searchQuery: string;
   onSearchChange: (q: string) => void;
@@ -27,7 +27,7 @@ interface ProjectsViewProps {
   onSelectItem?: (item: unknown) => void;
 }
 
-export default function ProjectsView({
+export default function ProjectsSection({
   projects,
   searchQuery,
   onSearchChange,
@@ -35,7 +35,7 @@ export default function ProjectsView({
   onFilterChange,
   onBack,
   onSelectItem,
-}: ProjectsViewProps) {
+}: ProjectsSectionProps) {
   const filtered = projects.filter((proj) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
