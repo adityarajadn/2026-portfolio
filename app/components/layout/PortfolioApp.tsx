@@ -23,6 +23,7 @@ interface SelectedItem {
   tech?: string[];
   demo_url?: string;
   github_url?: string;
+  external_links?: {label: string, url: string}[];
   [key: string]: unknown;
 }
 
@@ -71,7 +72,8 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
           category: item.category || "Web",
           tech: item.tech_stack || [],
           demo_url: item.demo_url || "",
-          github_url: item.github_url || ""
+          github_url: item.github_url || "",
+          external_links: item.external_links || []
         }));
         setProjects(projs as any);
 
@@ -86,7 +88,8 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
           img: item.image_url,
           gambar_url: item.image_url,
           category: item.category,
-          issuer: item.issuer
+          issuer: item.issuer,
+          external_links: item.external_links || []
         }));
         setCertificates(certs as any);
 
@@ -269,23 +272,39 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
                   })}
                 </div>
               )}
-              <div className="flex flex-col sm:flex-row gap-3 w-full mt-auto">
-                {selectedItem.demo_url && (
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full mt-auto">
+                {/* Legacy single demo_url fallback */}
+                {selectedItem.demo_url && (!selectedItem.external_links || selectedItem.external_links.length === 0) && (
                   <a
                     href={selectedItem.demo_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-medium shadow-lg"
+                    className="flex-1 min-w-[140px] bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-medium shadow-lg"
                   >
                     Kunjungi Proyek <ExternalLink size={16} />
                   </a>
                 )}
-                {selectedItem.github_url && !selectedItem.demo_url && (
+
+                {/* Multiple Dynamic Links */}
+                {selectedItem.external_links && selectedItem.external_links.map((lnk, idx) => (
+                  <a
+                    key={idx}
+                    href={lnk.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 min-w-[140px] bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-medium shadow-lg"
+                  >
+                    {lnk.label} <ExternalLink size={16} />
+                  </a>
+                ))}
+
+                {/* Legacy GitHub */}
+                {selectedItem.github_url && (!selectedItem.demo_url && (!selectedItem.external_links || selectedItem.external_links.length === 0)) && (
                   <a
                     href={selectedItem.github_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 font-medium"
+                    className="flex-1 min-w-[140px] bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2 font-medium"
                   >
                     Lihat GitHub <ExternalLink size={16} />
                   </a>
@@ -293,7 +312,7 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
                 <button
                   id="modal-close-btn"
                   onClick={() => setSelectedItem(null)}
-                  className="flex-1 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl border border-white/10 transition-all"
+                  className="flex-1 min-w-[100px] bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl border border-white/10 transition-all"
                 >
                   Close
                 </button>

@@ -38,6 +38,7 @@ interface PortfolioItem {
   link: string;
   image: string;
   tech?: string[];
+  external_links?: {label: string, url: string}[];
 }
 
 export default function DashboardPage() {
@@ -56,6 +57,7 @@ export default function DashboardPage() {
     link: "",
     image: "",
     tech: [] as string[],
+    external_links: [] as {label: string, url: string}[],
     file: null as File | null,
   });
 
@@ -81,9 +83,9 @@ export default function DashboardPage() {
     const sRes = await fetchData("settings") || [];
 
     const normalized = [
-      ...pRes.map((p: any) => ({ id: p.id, type: 'proyek', title: p.title, position: p.category || '', category: p.category || '', description: p.description || '', link: p.demo_url || '', image: p.image_url || '', tech: p.tech_stack || [] })),
+      ...pRes.map((p: any) => ({ id: p.id, type: 'proyek', title: p.title, position: p.category || '', category: p.category || '', description: p.description || '', link: p.demo_url || '', image: p.image_url || '', tech: p.tech_stack || [], external_links: p.external_links || [] })),
       ...eRes.map((e: any) => ({ id: e.id, type: 'pengalaman', title: e.title, position: '', category: e.category || '', description: e.description || '', link: (e.sort_order || 0).toString(), image: e.image_url || '' })),
-      ...cRes.map((c: any) => ({ id: c.id, type: 'sertifikat', title: c.title, position: c.issuer || '', category: c.category || '', description: c.issuer || '', link: (c.sort_order || 0).toString(), image: c.image_url || '' })),
+      ...cRes.map((c: any) => ({ id: c.id, type: 'sertifikat', title: c.title, position: c.issuer || '', category: c.category || '', description: c.issuer || '', link: (c.sort_order || 0).toString(), image: c.image_url || '', external_links: c.external_links || [] })),
       ...oRes.map((o: any) => ({ id: o.id, type: 'organization', title: o.name, position: o.period || '', description: o.role || '', link: (o.sort_order || 0).toString(), image: o.icon_url || '' })),
       ...tRes.map((t: any) => ({ id: t.id, type: 'timeline', title: t.name, position: t.period || '', description: '', link: (t.sort_order || 0).toString(), image: '' })),
       ...sRes.map((s: any) => ({ id: s.id, type: 'setting', title: s.key, position: '', description: '', link: s.value || '', image: '' }))
@@ -123,13 +125,13 @@ export default function DashboardPage() {
     let payload: any = {};
     if (activeTab === "proyek") {
       tableName = "projects";
-      payload = { title: formData.title, category: formData.category, description: formData.description, demo_url: formData.link, image_url: imageUrl, tech_stack: formData.tech };
+      payload = { title: formData.title, category: formData.category, description: formData.description, demo_url: formData.link, image_url: imageUrl, tech_stack: formData.tech, external_links: formData.external_links };
     } else if (activeTab === "pengalaman") {
       tableName = "experiences";
       payload = { title: formData.title, category: formData.category, description: formData.description, image_url: imageUrl, sort_order: parseInt(formData.link || "0") };
     } else if (activeTab === "sertifikat") {
       tableName = "certificates";
-      payload = { title: formData.title, category: formData.category, issuer: formData.position, image_url: imageUrl, sort_order: parseInt(formData.link || "0") };
+      payload = { title: formData.title, category: formData.category, issuer: formData.position, image_url: imageUrl, sort_order: parseInt(formData.link || "0"), external_links: formData.external_links };
     }
 
     if (editingId) {
@@ -176,6 +178,7 @@ export default function DashboardPage() {
       link: "",
       image: "",
       tech: [],
+      external_links: [],
       file: null,
     });
     setIsModalOpen(true);
@@ -191,6 +194,7 @@ export default function DashboardPage() {
       link: item.link || "",
       image: item.image || "",
       tech: item.tech || [],
+      external_links: item.external_links || [],
       file: null,
     });
     setIsModalOpen(true);
@@ -1135,20 +1139,74 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <div>
-              <label className="block text-sm text-neutral-400 mb-1">
-                Link (Opsional)
-              </label>
-              <input
-                type="url"
-                value={formData.link}
-                onChange={(e) =>
-                  setFormData({ ...formData, link: e.target.value })
-                }
-                className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                placeholder="https://..."
-              />
-            </div>
+            {/* Dynamic Multi-Links for Proyek & Sertifikat */}
+            {["proyek", "sertifikat"].includes(activeTab) ? (
+              <div className="space-y-3">
+                <label className="block text-sm text-neutral-400 mb-1">
+                  Daftar Link (Opsional)
+                </label>
+                {formData.external_links.map((lnk, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={lnk.label}
+                      onChange={(e) => {
+                        const newLinks = [...formData.external_links];
+                        newLinks[idx].label = e.target.value;
+                        setFormData({ ...formData, external_links: newLinks });
+                      }}
+                      placeholder="Label (ex: Play Store)"
+                      className="w-1/3 bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                    <input
+                      type="url"
+                      value={lnk.url}
+                      onChange={(e) => {
+                        const newLinks = [...formData.external_links];
+                        newLinks[idx].url = e.target.value;
+                        setFormData({ ...formData, external_links: newLinks });
+                      }}
+                      placeholder="https://..."
+                      className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newLinks = formData.external_links.filter((_, i) => i !== idx);
+                        setFormData({ ...formData, external_links: newLinks });
+                      }}
+                      className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({ ...formData, external_links: [...formData.external_links, { label: "Kunjungi", url: "" }] });
+                  }}
+                  className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 font-medium px-2 py-1 rounded-lg hover:bg-purple-500/10 transition-colors"
+                >
+                  <Plus size={16} /> Tambah Link Baru
+                </button>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm text-neutral-400 mb-1">
+                  {activeTab === "pengalaman" ? "Sort Order" : "Link (Opsional)"}
+                </label>
+                <input
+                  type={activeTab === "pengalaman" ? "number" : "text"}
+                  value={formData.link}
+                  onChange={(e) =>
+                    setFormData({ ...formData, link: e.target.value })
+                  }
+                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
+                  placeholder={activeTab === "pengalaman" ? "0" : "https://..."}
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm text-neutral-400 mb-1">
