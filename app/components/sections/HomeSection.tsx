@@ -830,8 +830,7 @@ export default function HomeSection({
       {/* FOOTER */}
       <footer className="py-12 text-center border-t border-white/5 relative z-10 text-neutral-500 text-sm">
         <p>
-          © {new Date().getFullYear()} Aditya Rajadana Hernadi. Powered by
-          Next.js &amp; Supabase.
+          © {new Date().getFullYear()} Aditya Rajadana Hernadi. All rights reserved.
         </p>
       </footer>
     </>
