@@ -118,8 +118,15 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
   }, []);
 
   const scrollToSection = (id: string) => {
+    const pageRoutes = ["projects", "experiences", "certificates"];
     if (currentView !== "home") {
-      router.push(`/#${id}`);
+      if (id === "home") {
+        router.push("/");
+      } else if (pageRoutes.includes(id)) {
+        router.push(`/${id}`);
+      } else {
+        router.push(`/#${id}`);
+      }
     } else {
       const el = document.getElementById(id);
       if (el) el.scrollIntoView({ behavior: "smooth" });

@@ -444,7 +444,7 @@ export default function HomeSection({
               Perjalanan
             </span>
             <h2 className="text-4xl md:text-5xl font-medium text-white">
-              Riwayat Pendidikan
+              Education History
             </h2>
           </div>
 
@@ -452,7 +452,7 @@ export default function HomeSection({
             {/* Garis Vertikal - Mobile */}
             <div className="md:hidden absolute top-0 left-8 bottom-0 w-1 bg-gradient-to-b from-purple-900/10 via-purple-500/30 to-purple-900/10 rounded-full"></div>
 
-            <div className="flex flex-col md:flex-row md:overflow-x-auto gap-12 md:gap-8 md:pb-48 md:pt-48 timeline-scrollbar md:snap-x relative z-10">
+            <div className="flex flex-col md:flex-row md:overflow-x-auto gap-8 md:gap-4 md:pb-48 md:pt-48 timeline-scrollbar md:snap-x relative z-10">
               {/* Garis Horizontal Utama - Desktop (Inside scroll container so it spans the full scroll width) */}
               <div
                 className="hidden md:block absolute top-1/2 left-0 h-1 bg-gradient-to-r from-purple-900/10 via-purple-500/30 to-purple-900/10 transform -translate-y-1/2 rounded-full"
@@ -475,7 +475,7 @@ export default function HomeSection({
                     return (
                       <div
                         key={idx}
-                        className="relative w-full pl-20 md:pl-0 md:min-w-[340px] md:w-[340px] md:snap-center flex flex-col justify-center"
+                        className="relative w-full md:pl-0 md:min-w-[280px] md:w-[280px] md:snap-center flex flex-col justify-center"
                       >
                         {/* Dot on the timeline - Desktop */}
                         <div className="hidden md:block absolute top-1/2 left-1/2 w-4 h-4 bg-purple-500 rounded-full border-4 border-[#0a0a0a] transform -translate-x-1/2 -translate-y-1/2 z-20 shadow-[0_0_15px_rgba(168,85,247,0.6)]"></div>
@@ -509,8 +509,7 @@ export default function HomeSection({
                   })
               ) : (
                 <div className="w-full text-center text-neutral-500 italic py-10 md:absolute md:top-1/2 md:-translate-y-1/2">
-                  Belum ada data pengalaman. Tambahkan di menu Pengaturan
-                  dashboard.
+                  No experience data yet. Add it in the Dashboard Settings.
                 </div>
               )}
             </div>
@@ -528,7 +527,7 @@ export default function HomeSection({
             <span className="px-3 py-1 border border-purple-500/30 bg-purple-500/5 rounded-full text-xs text-purple-400 uppercase mb-4 inline-block">
               Portfolio
             </span>
-            <h2 className="text-4xl font-medium text-white">Proyek Unggulan</h2>
+            <h2 className="text-4xl font-medium text-white">Featured Projects</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
             {projects.slice(0, 2).map((proj) => (
@@ -683,30 +682,34 @@ export default function HomeSection({
         className="py-24 px-4 md:px-12 max-w-7xl mx-auto border-t border-white/5 text-center"
       >
         <ScrollReveal>
-          <h2 className="text-4xl font-medium text-white mb-16">Achievements</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+          <h2 className="text-4xl font-medium text-white mb-16">
+            Achievements
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
             {certificates.slice(0, 2).map((cert, idx) => (
               <div
                 key={idx}
                 id={`home-cert-${idx}`}
-                className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 flex items-center gap-6 group hover:border-purple-500/30 transition-all cursor-pointer shadow-2xl hover:shadow-purple-600/10"
+                className="group relative rounded-2xl overflow-hidden aspect-video bg-neutral-900 border border-white/5 shadow-xl cursor-pointer"
                 onClick={() => onSelectItem(cert)}
               >
-                <div className="w-24 h-24 bg-neutral-900 rounded-xl overflow-hidden shrink-0 hidden sm:block">
-                  <img
-                    src={cert.gambar_url || cert.img}
-                    alt={cert.title}
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs text-purple-400 font-bold uppercase tracking-widest mb-1 block">
-                    {cert.category}
-                  </span>
-                  <h4 className="text-lg text-white font-medium mb-1 group-hover:text-purple-400 transition-colors">
-                    {cert.title}
-                  </h4>
-                  <p className="text-xs text-neutral-500">{cert.issuer}</p>
+                <img
+                  src={cert.gambar_url || cert.img}
+                  alt={cert.title}
+                  className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent p-6 flex flex-col justify-end z-10 pointer-events-none">
+                  <div className="transform transition-transform duration-300 group-hover:-translate-y-12">
+                    {cert.category && (
+                      <span className="text-xs text-purple-400 font-bold uppercase tracking-widest mb-2 inline-block">
+                        {cert.category}
+                      </span>
+                    )}
+                    <h4 className="text-xl font-medium text-white mb-1 group-hover:text-purple-400 transition-colors">
+                      {cert.title}
+                    </h4>
+                    <p className="text-sm text-neutral-400 line-clamp-2">{cert.issuer}</p>
+                  </div>
                 </div>
               </div>
             ))}

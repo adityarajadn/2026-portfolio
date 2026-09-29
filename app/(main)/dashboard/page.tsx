@@ -36,6 +36,7 @@ interface PortfolioItem {
   category?: string;
   description: string;
   link: string;
+  sort_order: number;
   image: string;
   tech?: string[];
   external_links?: {label: string, url: string}[];
@@ -83,18 +84,20 @@ export default function DashboardPage() {
     const sRes = await fetchData("settings") || [];
 
     const normalized = [
-      ...pRes.map((p: any) => ({ id: p.id, type: 'proyek', title: p.title, position: p.category || '', category: p.category || '', description: p.description || '', link: p.demo_url || '', image: p.image_url || '', tech: p.tech_stack || [], external_links: p.external_links || [] })),
-      ...eRes.map((e: any) => ({ id: e.id, type: 'pengalaman', title: e.title, position: '', category: e.category || '', description: e.description || '', link: (e.sort_order || 0).toString(), image: e.image_url || '' })),
-      ...cRes.map((c: any) => ({ id: c.id, type: 'sertifikat', title: c.title, position: c.issuer || '', category: c.category || '', description: c.issuer || '', link: (c.sort_order || 0).toString(), image: c.image_url || '', external_links: c.external_links || [] })),
-      ...oRes.map((o: any) => ({ id: o.id, type: 'organization', title: o.name, position: o.period || '', description: o.role || '', link: (o.sort_order || 0).toString(), image: o.icon_url || '' })),
-      ...tRes.map((t: any) => ({ id: t.id, type: 'timeline', title: t.name, position: t.period || '', description: '', link: (t.sort_order || 0).toString(), image: '' })),
-      ...sRes.map((s: any) => ({ id: s.id, type: 'setting', title: s.key, position: '', description: '', link: s.value || '', image: '' }))
+      ...pRes.map((p: any) => ({ id: p.id, type: 'proyek', title: p.title, position: p.category || '', category: p.category || '', description: p.description || '', link: p.demo_url || '', sort_order: p.sort_order || 0, image: p.image_url || '', tech: p.tech_stack || [], external_links: p.external_links || [] })),
+      ...eRes.map((e: any) => ({ id: e.id, type: 'pengalaman', title: e.title, position: '', category: e.category || '', description: e.description || '', link: '', sort_order: e.sort_order || 0, image: e.image_url || '' })),
+      ...cRes.map((c: any) => ({ id: c.id, type: 'sertifikat', title: c.title, position: c.issuer || '', category: c.category || '', description: c.issuer || '', link: '', sort_order: c.sort_order || 0, image: c.image_url || '', external_links: c.external_links || [] })),
+      ...oRes.map((o: any) => ({ id: o.id, type: 'organization', title: o.name, position: o.period || '', description: o.role || '', link: '', sort_order: o.sort_order || 0, image: o.icon_url || '' })),
+      ...tRes.map((t: any) => ({ id: t.id, type: 'timeline', title: t.name, position: t.period || '', description: '', link: '', sort_order: t.sort_order || 0, image: '' })),
+      ...sRes.map((s: any) => ({ id: s.id, type: 'setting', title: s.key, position: '', description: '', link: s.value || '', sort_order: 0, image: '' }))
     ];
     setData(normalized as PortfolioItem[]);
     setIsLoading(false);
   };
 
-  const filteredData = data.filter((item) => item.type === activeTab);
+  const filteredData = data
+    .filter((item) => item.type === activeTab)
+    .sort((a, b) => a.sort_order - b.sort_order);
 
   const categoriesSetting = data.find(d => d.type === "setting" && d.title === "categories");
   const globalCategories = categoriesSetting && categoriesSetting.link ? categoriesSetting.link.split(",") : ["Web", "Game", "Mobile", "UI/UX", "Data Science"];
@@ -782,14 +785,11 @@ export default function DashboardPage() {
                 </div>
               </form>
 
-              <div className="space-y-3">
-                {[...data]
-                  .filter((d) => d.type === "timeline")
-                  .sort(
-                    (a, b) =>
-                      parseInt(a.link || "999") - parseInt(b.link || "999"),
-                  )
-                  .map((tl) => (
+               <div className="space-y-3">
+                 {[...data]
+                   .filter((d) => d.type === "timeline")
+                   .sort((a, b) => a.sort_order - b.sort_order)
+                   .map((tl) => (
                     <div
                       key={tl.id}
                       draggable
@@ -810,11 +810,7 @@ export default function DashboardPage() {
 
                         const currentTimeline = [...data]
                           .filter((d) => d.type === "timeline")
-                          .sort(
-                            (a, b) =>
-                              parseInt(a.link || "999") -
-                              parseInt(b.link || "999"),
-                          );
+                          .sort((a, b) => a.sort_order - b.sort_order);
 
                         const draggedIdx = currentTimeline.findIndex(
                           (d) => d.id === draggedId,
@@ -834,7 +830,7 @@ export default function DashboardPage() {
                             const index = currentTimeline.findIndex(
                               (t) => t.id === d.id,
                             );
-                            return { ...d, link: index.toString() };
+                            return { ...d, sort_order: index };
                           }
                           return d;
                         });
@@ -842,7 +838,7 @@ export default function DashboardPage() {
 
                         Promise.all(
                           currentTimeline.map((item, i) =>
-                            updateData("organizations", item.id, {
+                            updateData("timelines", item.id, {
                               sort_order: i,
                             }),
                           ),
@@ -892,8 +888,7 @@ export default function DashboardPage() {
                   {activeTab}
                 </h2>
                 <p className="text-neutral-400 text-sm">
-                  Kelola data {activeTab} Anda untuk ditampilkan di halaman
-                  utama
+                  Manage your {activeTab} data to be displayed on the home page
                 </p>
               </div>
               <button
@@ -901,118 +896,125 @@ export default function DashboardPage() {
                 className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-purple-500/20"
               >
                 <Plus size={18} />
-                Tambah{" "}
+                Add{" "}
                 {activeTab === "pengalaman"
-                  ? "Galeri"
+                  ? "Gallery"
                   : activeTab === "sertifikat"
-                    ? "Sertifikat"
-                    : "Proyek"}
+                    ? "Certificate"
+                    : "Project"}
               </button>
             </div>
 
-            {/* Table Area */}
-            <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/5 bg-white/[0.02] text-xs uppercase tracking-wider text-neutral-400">
-                      <th className="px-6 py-4 font-medium">Gambar</th>
-                      <th className="px-6 py-4 font-medium">Title & Posisi</th>
-                      <th className="px-6 py-4 font-medium w-1/3">Description</th>
-                      <th className="px-6 py-4 font-medium">Link</th>
-                      <th className="px-6 py-4 font-medium text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-sm">
-                    {isLoading ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="px-6 py-12 text-center text-neutral-500"
-                        >
-                          Memuat data...
-                        </td>
-                      </tr>
-                    ) : filteredData.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="px-6 py-12 text-center text-neutral-500"
-                        >
-                          Belum ada data {activeTab}.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredData.map((item) => (
-                        <tr
-                          key={item.id}
-                          className="hover:bg-white/[0.01] transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <div className="w-16 h-12 bg-[#1a1a1a] rounded-lg border border-white/5 overflow-hidden relative">
-                              {item.image ? (
-                                <Image
-                                  src={item.image}
-                                  alt={item.title}
-                                  fill
-                                  className="object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-neutral-800 flex items-center justify-center text-neutral-500 text-xs">
-                                  Img
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="font-semibold text-white mb-1">
-                              {item.title}
-                            </p>
-                            <p className="text-xs text-purple-400">
-                              {item.category ? item.category + (item.position ? ' - ' + item.position : '') : item.position}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-neutral-400 line-clamp-2">
-                              {item.description}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4">
-                            {item.link ? (
-                              <a
-                                href={item.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center p-2 rounded-lg bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
-                              >
-                                <ExternalLink size={16} />
-                              </a>
-                            ) : (
-                              <span className="text-neutral-600">-</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleEdit(item)}
-                                className="p-2 rounded-lg text-neutral-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
-                              >
-                                <Pencil size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(item.id)}
-                                className="p-2 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+            {/* Card List Area */}
+            <div className="space-y-3">
+              {isLoading ? (
+                <div className="bg-[#111] border border-white/5 rounded-2xl p-12 text-center text-neutral-500">
+                  Loading data...
+                </div>
+              ) : filteredData.length === 0 ? (
+                <div className="bg-[#111] border border-white/5 rounded-2xl p-12 text-center text-neutral-500">
+                  No {activeTab} data found.
+                </div>
+              ) : (
+                filteredData.map((item) => (
+                  <div
+                    key={item.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", item.id.toString());
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const draggedId = Number(e.dataTransfer.getData("text/plain"));
+                      if (!draggedId || draggedId === item.id) return;
+
+                      const currentItems = [...data]
+                        .filter((d) => d.type === activeTab)
+                        .sort((a, b) => a.sort_order - b.sort_order);
+
+                      const draggedIdx = currentItems.findIndex((d) => d.id === draggedId);
+                      const targetIdx = currentItems.findIndex((d) => d.id === item.id);
+
+                      if (draggedIdx === -1 || targetIdx === -1) return;
+
+                      const draggedItem = currentItems[draggedIdx];
+                      currentItems.splice(draggedIdx, 1);
+                      currentItems.splice(targetIdx, 0, draggedItem);
+
+                      const newData = data.map((d) => {
+                        if (d.type === activeTab) {
+                          const index = currentItems.findIndex((t) => t.id === d.id);
+                          return { ...d, sort_order: index };
+                        }
+                        return d;
+                      });
+                      setData(newData);
+
+                      let tableName = "";
+                      if (activeTab === "proyek") tableName = "projects";
+                      else if (activeTab === "pengalaman") tableName = "experiences";
+                      else if (activeTab === "sertifikat") tableName = "certificates";
+
+                      Promise.all(
+                        currentItems.map((itm, i) =>
+                          updateData(tableName, itm.id, { sort_order: i })
+                        )
+                      );
+                    }}
+                    className="flex items-center gap-4 p-4 bg-[#111] rounded-xl border border-white/5 cursor-move hover:border-purple-500/30 transition-colors"
+                  >
+                    <div className="text-neutral-500 hover:text-white transition-colors">
+                      <GripVertical size={20} />
+                    </div>
+                    <div className="w-20 h-14 bg-[#1a1a1a] rounded-lg border border-white/5 overflow-hidden relative flex-shrink-0">
+                      {item.image ? (
+                        <Image src={item.image} alt={item.title} fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-neutral-800 flex items-center justify-center text-neutral-500 text-xs">
+                          Img
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white mb-1 truncate">{item.title}</p>
+                      <p className="text-xs text-purple-400 truncate">
+                        {item.category ? item.category + (item.position ? ' - ' + item.position : '') : item.position}
+                      </p>
+                      <p className="text-neutral-400 text-xs mt-1 line-clamp-1">{item.description}</p>
+                    </div>
+                    {item.link && activeTab === "proyek" && (
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 rounded-lg bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
+                      >
+                        <ExternalLink size={16} />
+                      </a>
                     )}
-                  </tbody>
-                </table>
-              </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEdit(item)}
+                        className="p-2 rounded-lg text-neutral-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="p-2 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -1191,22 +1193,22 @@ export default function DashboardPage() {
                   <Plus size={16} /> Tambah Link Baru
                 </button>
               </div>
-            ) : (
+            ) : activeTab === "sertifikat" ? (
               <div>
                 <label className="block text-sm text-neutral-400 mb-1">
-                  {activeTab === "pengalaman" ? "Sort Order" : "Link (Opsional)"}
+                  Link (Opsional)
                 </label>
                 <input
-                  type={activeTab === "pengalaman" ? "number" : "text"}
+                  type="text"
                   value={formData.link}
                   onChange={(e) =>
                     setFormData({ ...formData, link: e.target.value })
                   }
                   className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                  placeholder={activeTab === "pengalaman" ? "0" : "https://..."}
+                  placeholder="https://..."
                 />
               </div>
-            )}
+            ) : null}
 
             <div>
               <label className="block text-sm text-neutral-400 mb-1">

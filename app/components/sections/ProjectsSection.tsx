@@ -47,7 +47,7 @@ export default function ProjectsSection({
   });
 
   return (
-    <section className="pt-40 pb-32 px-4 md:px-12 max-w-7xl mx-auto min-h-screen text-left">
+    <section className="pt-20 pb-32 px-4 md:px-12 max-w-7xl mx-auto min-h-screen text-left">
       <ScrollReveal>
         <button
           id="projects-back-btn"

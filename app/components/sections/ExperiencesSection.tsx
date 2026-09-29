@@ -18,15 +18,15 @@ interface ExperiencesSectionProps {
 
 export default function ExperiencesSection({ experiences, onBack, onSelect }: ExperiencesSectionProps) {
   return (
-    <section className="pt-40 pb-32 px-4 md:px-12 max-w-7xl mx-auto min-h-screen text-left">
+    <section className="pt-20 pb-32 px-4 md:px-12 max-w-7xl mx-auto min-h-screen text-left">
       <button
         id="experiences-back-btn"
         onClick={onBack}
         className="group flex items-center gap-2 text-neutral-400 mb-12 hover:text-white transition-all bg-white/5 px-5 py-2.5 rounded-full w-fit border border-white/5"
       >
-        <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Kembali
+        <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Back
       </button>
-      <h1 className="text-5xl md:text-6xl font-medium mb-12 text-white tracking-tight">Galeri</h1>
+      <h1 className="text-5xl md:text-6xl font-medium mb-12 text-white tracking-tight">Gallery</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {experiences.map((exp, idx) => (
           <div

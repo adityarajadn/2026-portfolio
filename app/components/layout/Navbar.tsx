@@ -9,11 +9,11 @@ interface NavbarProps {
 }
 
 const navLinks = [
-  { name: "Beranda", id: "home", icon: <Home size={18} /> },
-  { name: "Profil", id: "about", icon: <User size={18} /> },
-  { name: "Proyek", id: "projects", icon: <Folder size={18} /> },
-  { name: "Galeri", id: "experiences", icon: <Camera size={18} /> },
-  { name: "Pencapaian", id: "certificates", icon: <Award size={18} /> },
+  { name: "Home", id: "home", icon: <Home size={18} /> },
+  { name: "About", id: "about", icon: <User size={18} /> },
+  { name: "Projects", id: "projects", icon: <Folder size={18} /> },
+  { name: "Gallery", id: "experiences", icon: <Camera size={18} /> },
+  { name: "Achievements", id: "certificates", icon: <Award size={18} /> },
 ];
 
 export default function Navbar({
@@ -44,7 +44,8 @@ export default function Navbar({
             aria-label={link.name}
           >
             {link.icon}
-            <span className="absolute px-2 py-1 bg-[#111] border border-white/10 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg
+            <span
+              className="absolute px-2 py-1 bg-[#111] border border-white/10 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg
               top-full left-1/2 -translate-x-1/2 mt-4 
               md:top-1/2 md:left-full md:-translate-y-1/2 md:-translate-x-0 md:mt-0 md:ml-4"
             >
