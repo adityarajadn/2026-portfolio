@@ -226,7 +226,7 @@ export default function DashboardPage() {
             }`}
           >
             <Camera size={18} />
-            <span className="text-sm">Galeri</span>
+            <span className="text-sm">Gallery</span>
           </button>
 
           <button

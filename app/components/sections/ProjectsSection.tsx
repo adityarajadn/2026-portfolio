@@ -58,7 +58,7 @@ export default function ProjectsSection({
         </button>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>
-            <h1 className="text-5xl md:text-6xl font-medium mb-4 text-white tracking-tight">Project Archive</h1>
+            <h1 className="text-5xl md:text-6xl font-medium mb-4 text-white tracking-tight">All Projects</h1>
             <p className="text-neutral-400 text-lg">A complete collection of technical explorations.</p>
           </div>
           <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-5 py-3 flex items-center gap-3 w-full md:w-80 shadow-xl">

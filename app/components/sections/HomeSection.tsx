@@ -225,8 +225,7 @@ export default function HomeSection({
                 Aditya Rajadana H
               </h3>
               <p className="text-neutral-500 text-sm leading-relaxed mb-8">
-                Fokus pada pembuatan aplikasi backend yang scalable dan frontend
-                yang interaktif.
+                Focused on game development, UI/UX design, and web development with a passion for creating interactive and user-friendly applications.
               </p>
               <div className="flex gap-4">
                 <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex-1 text-center">
@@ -278,9 +277,6 @@ export default function HomeSection({
                           </span>
                           <span className="text-[10px] px-2 py-1 bg-white/10 rounded-md font-medium">
                             Node.js
-                          </span>
-                          <span className="text-[10px] px-2 py-1 bg-white/10 rounded-md font-medium">
-                            PostgreSQL
                           </span>
                           <span className="text-[10px] px-2 py-1 bg-white/10 rounded-md font-medium">
                             Supabase
@@ -339,9 +335,6 @@ export default function HomeSection({
                           </span>
                           <span className="text-[10px] px-2 py-1 bg-white/10 rounded-md font-medium">
                             Vercel
-                          </span>
-                          <span className="text-[10px] px-2 py-1 bg-white/10 rounded-md font-medium">
-                            CI/CD
                           </span>
                         </div>
                       </div>
@@ -440,9 +433,6 @@ export default function HomeSection({
       >
         <ScrollReveal>
           <div className="mb-16">
-            <span className="px-3 py-1 border border-purple-500/30 bg-purple-500/5 rounded-full text-xs text-purple-400 uppercase tracking-widest mb-4 inline-block">
-              Perjalanan
-            </span>
             <h2 className="text-4xl md:text-5xl font-medium text-white">
               Education History
             </h2>
@@ -524,9 +514,6 @@ export default function HomeSection({
       >
         <ScrollReveal>
           <div className="mb-16">
-            <span className="px-3 py-1 border border-purple-500/30 bg-purple-500/5 rounded-full text-xs text-purple-400 uppercase mb-4 inline-block">
-              Portfolio
-            </span>
             <h2 className="text-4xl font-medium text-white">Featured Projects</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
@@ -629,7 +616,7 @@ export default function HomeSection({
               }}
               className="text-purple-400 flex items-center gap-2 mx-auto hover:gap-4 transition-all uppercase text-xs tracking-widest font-bold"
             >
-              Semua Proyek <ChevronRight size={16} />
+              All Projects<ChevronRight size={16} />
             </button>
           </div>
         </ScrollReveal>
@@ -641,7 +628,7 @@ export default function HomeSection({
         className="py-24 px-4 md:px-12 max-w-7xl mx-auto border-t border-white/5 text-center"
       >
         <ScrollReveal>
-          <h2 className="text-4xl font-medium text-white mb-16">Galeri</h2>
+          <h2 className="text-4xl font-medium text-white mb-16">Gallery</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
             {experiences.slice(0, 4).map((exp, idx) => (
               <div
@@ -735,9 +722,7 @@ export default function HomeSection({
         <ScrollReveal>
           <h2 className="text-4xl font-medium text-white mb-6">Contact Me</h2>
           <p className="text-neutral-400 mb-10 text-sm md:text-base leading-relaxed max-w-2xl mx-auto">
-            Tertarik untuk berkolaborasi, berdiskusi, atau memiliki proyek
-            menarik? Jangan ragu untuk menyapa melalui email atau terhubung di
-            media sosial.
+            Intereseted to collaborate, discuss, or have an interesting project? Feel free to reach out via email or connect on social media.
           </p>
           <div className="max-w-xl mx-auto mb-12">
             <form
@@ -755,7 +740,7 @@ export default function HomeSection({
 
               <div className="relative z-10">
                 <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 block">
-                  Nama Anda
+                  Your Name
                 </label>
                 <input
                   type="text"
@@ -768,11 +753,11 @@ export default function HomeSection({
 
               <div className="relative z-10">
                 <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 block">
-                  Pesan
+                  Message
                 </label>
                 <textarea
                   name="message"
-                  placeholder="Write your message or proposal..."
+                  placeholder="Write your message..."
                   required
                   rows={4}
                   className="w-full bg-[#111] border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-purple-500 transition-colors resize-none shadow-inner"

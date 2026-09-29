@@ -33,7 +33,7 @@ export default function CertificatesSection({ certificates, certFilter, onFilter
       >
         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Back
       </button>
-      <h1 className="text-5xl md:text-6xl font-medium mb-12 text-white tracking-tight">Certificates Collection</h1>
+      <h1 className="text-5xl md:text-6xl font-medium mb-12 text-white tracking-tight">Achievements</h1>
       <div className="flex flex-wrap gap-3 mb-16">
         {["All", "Lomba", "Sertifikasi"].map((cat) => (
           <button
