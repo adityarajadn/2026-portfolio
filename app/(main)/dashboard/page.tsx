@@ -1,1311 +1,165 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import {
-  fetchData,
-  insertData,
-  updateData,
-  deleteData,
-  uploadImage,
-  upsertData,
-} from "@/app/lib/supabase";
-import {
-  Camera,
-  Award,
-  LogOut,
-  Plus,
-  Pencil,
-  Trash2,
-  ExternalLink,
-  User,
-  Upload,
-  Settings,
-  Briefcase,
-  GripVertical,
-  X,
-} from "lucide-react";
-import Modal from "@/app/components/ui/Modal";
-import Image from "next/image";
+import { fetchData, updateData, insertData, deleteData, upsertData } from "@/app/lib/supabase";
+import { Trash2, Pencil, X, Plus } from "lucide-react";
 
-interface PortfolioItem {
-  id: number;
-  type: string;
-  title: string;
-  position: string;
-  category?: string;
-  description: string;
-  link: string;
-  sort_order: number;
-  image: string;
-  tech?: string[];
-  external_links?: {label: string, url: string}[];
-  is_featured?: boolean;
-}
-
-export default function DashboardPage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState("pengaturan");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
-
-  // Form State
-  const [formData, setFormData] = useState({
-    title: "",
-    position: "",
-    category: "",
-    description: "",
-    link: "",
-    image: "",
-    tech: [] as string[],
-    external_links: [] as {label: string, url: string}[],
-    is_featured: false,
-    file: null as File | null,
-  });
-
-  const [data, setData] = useState<PortfolioItem[]>([]);
+export default function DashboardSettingsPage() {
+  const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingOrg, setEditingOrg] = useState<PortfolioItem | null>(null);
-  const [editingTimeline, setEditingTimeline] = useState<PortfolioItem | null>(
-    null,
-  );
+  const [editingOrg, setEditingOrg] = useState<any | null>(null);
 
-  // Load data dari Supabase saat komponen di-mount
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
     setIsLoading(true);
-    const pRes = await fetchData("projects") || [];
-    const eRes = await fetchData("experiences") || [];
-    const cRes = await fetchData("certificates") || [];
     const oRes = await fetchData("organizations") || [];
     const tRes = await fetchData("timelines") || [];
     const sRes = await fetchData("settings") || [];
 
     const normalized = [
-      ...pRes.map((p: any) => ({ id: p.id, type: 'proyek', title: p.title, position: p.category || '', category: p.category || '', description: p.description || '', link: p.demo_url || '', sort_order: p.sort_order || 0, image: p.image_url || '', tech: p.tech_stack || [], external_links: p.external_links || [] })),
-      ...eRes.map((e: any) => ({ id: e.id, type: 'pengalaman', title: e.title, position: '', category: e.category || '', description: e.description || '', link: '', sort_order: e.sort_order || 0, image: e.image_url || '', is_featured: e.is_featured || false })),
-      ...cRes.map((c: any) => ({ id: c.id, type: 'sertifikat', title: c.title, position: c.issuer || '', category: c.category || '', description: c.issuer || '', link: '', sort_order: c.sort_order || 0, image: c.image_url || '', external_links: c.external_links || [] })),
       ...oRes.map((o: any) => ({ id: o.id, type: 'organization', title: o.name, position: o.period || '', description: o.role || '', link: '', sort_order: o.sort_order || 0, image: o.icon_url || '' })),
       ...tRes.map((t: any) => ({ id: t.id, type: 'timeline', title: t.name, position: t.period || '', description: '', link: '', sort_order: t.sort_order || 0, image: '' })),
       ...sRes.map((s: any) => ({ id: s.id, type: 'setting', title: s.key, position: '', description: '', link: s.value || '', sort_order: 0, image: '' }))
     ];
-    setData(normalized as PortfolioItem[]);
+    setData(normalized);
     setIsLoading(false);
   };
 
-  const filteredData = data
-    .filter((item) => item.type === activeTab)
-    .sort((a, b) => a.sort_order - b.sort_order);
-
   const categoriesSetting = data.find(d => d.type === "setting" && d.title === "categories");
-  const globalCategories = categoriesSetting && categoriesSetting.link ? categoriesSetting.link.split(",") : ["Web", "Game", "Mobile", "UI/UX", "Data Science"];
+  const globalCategories: string[] = categoriesSetting && categoriesSetting.link ? categoriesSetting.link.split(",") : ["Web", "Game", "Mobile", "UI/UX", "Data Science"];
 
   const techsSetting = data.find(d => d.type === "setting" && d.title === "tech_stacks");
-  const globalTechs = techsSetting && techsSetting.link ? techsSetting.link.split(",") : ["React", "Next.js", "Tailwind", "Node.js", "TypeScript", "Supabase", "PostgreSQL", "Unity", "C#", "Godot", "Figma", "UI/UX"];
-
-
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      // Membuat URL sementara untuk preview gambar secara lokal
-      const imageUrl = URL.createObjectURL(file);
-      setFormData({ ...formData, image: imageUrl, file });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    let imageUrl = formData.image;
-    if (formData.file) {
-      const uploadRes = await uploadImage(formData.file);
-      if (uploadRes.success && uploadRes.url) imageUrl = uploadRes.url;
-    }
-
-    let tableName = "";
-    let payload: any = {};
-    if (activeTab === "proyek") {
-      tableName = "projects";
-      payload = { title: formData.title, category: formData.category, description: formData.description, demo_url: formData.link, image_url: imageUrl, tech_stack: formData.tech, external_links: formData.external_links };
-    } else if (activeTab === "pengalaman") {
-      tableName = "experiences";
-      payload = { title: formData.title, category: formData.category, description: formData.description, image_url: imageUrl, sort_order: parseInt(formData.link || "0"), is_featured: formData.is_featured };
-    } else if (activeTab === "sertifikat") {
-      tableName = "certificates";
-      payload = { title: formData.title, category: formData.category, issuer: formData.position, image_url: imageUrl, sort_order: parseInt(formData.link || "0"), external_links: formData.external_links };
-    }
-
-    if (editingId) {
-      await updateData(tableName, editingId, payload);
-    } else {
-      await insertData(tableName, payload);
-    }
-
-    setIsModalOpen(false);
-    setEditingId(null);
-    loadData();
-  };
-
-  const handleDelete = (id: number) => {
-    setDeleteConfirmId(id);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteConfirmId) return;
-    const itemToDelete = data.find((d) => d.id === deleteConfirmId);
-    if (!itemToDelete) return;
-    let table = "";
-    if (itemToDelete.type === "proyek") table = "projects";
-    else if (itemToDelete.type === "pengalaman") table = "experiences";
-    else if (itemToDelete.type === "sertifikat") table = "certificates";
-    else if (itemToDelete.type === "organization") table = "organizations";
-    else if (itemToDelete.type === "timeline") table = "timelines";
-    else if (itemToDelete.type === "setting") table = "settings";
-
-    const res = await deleteData(table, deleteConfirmId);
-    if (res.success) {
-      setData(data.filter((item) => item.id !== deleteConfirmId));
-    }
-    setDeleteConfirmId(null);
-  };
-
-  const openModal = () => {
-    setEditingId(null);
-    setFormData({
-      title: "",
-      position: "",
-      category: "",
-      description: "",
-      link: "",
-      image: "",
-      tech: [],
-      external_links: [],
-      is_featured: false,
-      file: null,
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (item: PortfolioItem) => {
-    setEditingId(item.id);
-    setFormData({
-      title: item.title,
-      position: item.position,
-      category: item.category || "",
-      description: item.description,
-      link: item.link || "",
-      image: item.image || "",
-      tech: item.tech || [],
-      external_links: item.external_links || [],
-      is_featured: item.is_featured || false,
-      file: null,
-    });
-    setIsModalOpen(true);
-  };
+  const globalTechs: string[] = techsSetting && techsSetting.link ? techsSetting.link.split(",") : ["React", "Next.js", "Tailwind", "Node.js", "TypeScript", "Supabase", "PostgreSQL", "Unity", "C#", "Godot", "Figma", "UI/UX"];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#111] border-r border-white/5 flex flex-col">
-        <div className="p-6">
-          <button
-            onClick={() => router.push("/")}
-            className="text-xl font-bold text-white tracking-wider hover:opacity-80 transition-opacity text-left"
-          >
-            Portofolio<span className="text-purple-500">.</span>
-          </button>
-        </div>
-
-        <nav className="flex-1 px-4 space-y-2">
-          <button
-            onClick={() => setActiveTab("pengalaman")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              activeTab === "pengalaman"
-                ? "bg-purple-500/10 text-purple-400 font-medium"
-                : "text-neutral-400 hover:bg-white/5 hover:text-white"
-            }`}
-          >
-            <Camera size={18} />
-            <span className="text-sm">Gallery</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("sertifikat")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              activeTab === "sertifikat"
-                ? "bg-purple-500/10 text-purple-400 font-medium"
-                : "text-neutral-400 hover:bg-white/5 hover:text-white"
-            }`}
-          >
-            <Award size={18} />
-            <span className="text-sm">Certificates</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("proyek")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              activeTab === "proyek"
-                ? "bg-purple-500/10 text-purple-400 font-medium"
-                : "text-neutral-400 hover:bg-white/5 hover:text-white"
-            }`}
-          >
-            <Briefcase size={18} />
-            <span className="text-sm">Projects</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("pengaturan")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              activeTab === "pengaturan"
-                ? "bg-purple-500/10 text-purple-400 font-medium"
-                : "text-neutral-400 hover:bg-white/5 hover:text-white"
-            }`}
-          >
-            <Settings size={18} />
-            <span className="text-sm">Pengaturan</span>
-          </button>
-        </nav>
-
-        <div className="p-4 border-t border-white/5">
-          <button
-            onClick={() => router.push("/dashboard/login")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all"
-          >
-            <LogOut size={18} />
-            <span className="text-sm font-medium">Sign Out</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto">
-        {activeTab === "pengaturan" ? (
-          <div className="max-w-3xl mx-auto space-y-8">
-
-            {/* Pengaturan Kategori */}
-            <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl mb-8">
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Kategori Portofolio
-              </h2>
-              <p className="text-neutral-400 text-sm mb-6">
-                Kelola daftar kategori yang dapat dipilih pada saat menambahkan Proyek, Sertifikat, dan Galeri.
-              </p>
-              
-              <div className="flex flex-wrap gap-2 mb-6">
-                {globalCategories.map((cat, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-purple-600/20 text-purple-300 px-3 py-1.5 rounded-full text-sm font-medium border border-purple-500/30">
-                    {cat}
-                    <button type="button" onClick={async () => {
-                      const newCats = globalCategories.filter(c => c !== cat);
-                      await upsertData("settings", { key: "categories", value: newCats.join(",") }, "key");
-                      loadData();
-                    }} className="hover:text-red-400 transition-colors">
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const form = e.target as HTMLFormElement;
-                const input = form.elements.namedItem("new_category") as HTMLInputElement;
-                if (!input.value.trim()) return;
-                const newCat = input.value.trim();
-                if (globalCategories.includes(newCat)) {
-                   alert("Kategori sudah ada!"); return;
-                }
-                const newCats = [...globalCategories, newCat];
+    <div className="max-w-3xl mx-auto space-y-8">
+      {/* Pengaturan Kategori */}
+      <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">Kategori Portofolio</h2>
+        <p className="text-neutral-400 text-sm mb-6">Kelola daftar kategori yang dapat dipilih pada saat menambahkan Proyek, Sertifikat, dan Galeri.</p>
+        
+        <div className="flex flex-wrap gap-2 mb-6">
+          {globalCategories.map((cat, idx) => (
+            <div key={idx} className="flex items-center gap-2 bg-purple-600/20 text-purple-300 px-3 py-1.5 rounded-full text-sm font-medium border border-purple-500/30">
+              {cat}
+              <button type="button" onClick={async () => {
+                const newCats = globalCategories.filter(c => c !== cat);
                 await upsertData("settings", { key: "categories", value: newCats.join(",") }, "key");
-                input.value = "";
                 loadData();
-              }} className="flex gap-3">
-                <input type="text" name="new_category" placeholder="Kategori baru (ex: Backend)..." className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors text-sm" />
-                <button type="submit" className="bg-purple-600 text-white font-medium rounded-xl px-6 py-3 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20 text-sm">
-                  Tambah
-                </button>
-              </form>
+              }} className="hover:text-red-400 transition-colors">
+                <X size={14} />
+              </button>
             </div>
+          ))}
+        </div>
+        
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const form = e.target as HTMLFormElement;
+          const input = form.elements.namedItem("new_category") as HTMLInputElement;
+          if (!input.value.trim()) return;
+          const newCat = input.value.trim();
+          if (globalCategories.includes(newCat)) { alert("Kategori sudah ada!"); return; }
+          const newCats = [...globalCategories, newCat];
+          await upsertData("settings", { key: "categories", value: newCats.join(",") }, "key");
+          input.value = "";
+          loadData();
+        }} className="flex gap-3">
+          <input type="text" name="new_category" placeholder="Kategori baru (ex: Backend)..." className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors text-sm" />
+          <button type="submit" className="bg-purple-600 text-white font-medium rounded-xl px-6 py-3 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20 text-sm">
+            Tambah
+          </button>
+        </form>
+      </div>
 
-
-            {/* Pengaturan Tech Stack */}
-            <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl mb-8">
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Pengaturan Tech Stack
-              </h2>
-              <p className="text-neutral-400 text-sm mb-6">
-                Kelola daftar Tech Stack yang dapat dipilih pada saat menambahkan Proyek.
-              </p>
-              
-              <div className="flex flex-wrap gap-2 mb-6">
-                {globalTechs.map((tech, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-purple-600/20 text-purple-300 px-3 py-1.5 rounded-full text-sm font-medium border border-purple-500/30">
-                    {tech}
-                    <button type="button" onClick={async () => {
-                      const newTechs = globalTechs.filter(t => t !== tech);
-                      await upsertData("settings", { key: "tech_stacks", value: newTechs.join(",") }, "key");
-                      loadData();
-                    }} className="hover:text-red-400 transition-colors">
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const form = e.target as HTMLFormElement;
-                const input = form.elements.namedItem("new_tech") as HTMLInputElement;
-                if (!input.value.trim()) return;
-                const newTech = input.value.trim();
-                if (globalTechs.includes(newTech)) {
-                   alert("Tech Stack sudah ada!"); return;
-                }
-                const newTechs = [...globalTechs, newTech];
+      {/* Pengaturan Tech Stack */}
+      <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">Pengaturan Tech Stack</h2>
+        <p className="text-neutral-400 text-sm mb-6">Kelola daftar Tech Stack yang dapat dipilih pada saat menambahkan Proyek.</p>
+        
+        <div className="flex flex-wrap gap-2 mb-6">
+          {globalTechs.map((tech, idx) => (
+            <div key={idx} className="flex items-center gap-2 bg-purple-600/20 text-purple-300 px-3 py-1.5 rounded-full text-sm font-medium border border-purple-500/30">
+              {tech}
+              <button type="button" onClick={async () => {
+                const newTechs = globalTechs.filter(t => t !== tech);
                 await upsertData("settings", { key: "tech_stacks", value: newTechs.join(",") }, "key");
-                input.value = "";
                 loadData();
-              }} className="flex gap-3">
-                <input type="text" name="new_tech" placeholder="Tech Stack baru (ex: Prisma)..." className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors text-sm" />
-                <button type="submit" className="bg-purple-600 text-white font-medium rounded-xl px-6 py-3 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20 text-sm">
-                  Tambah
-                </button>
-              </form>
-            </div>
-
-            <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl">
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Pengaturan Link Sosial Media
-              </h2>
-              <p className="text-neutral-400 text-sm mb-8">
-                Atur link tujuan untuk icon sosmed yang tampil di halaman
-                beranda.
-              </p>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.target as HTMLFormElement;
-                  const github = (
-                    form.elements.namedItem("github") as HTMLInputElement
-                  ).value;
-                  const linkedin = (
-                    form.elements.namedItem("linkedin") as HTMLInputElement
-                  ).value;
-                  const instagram = (
-                    form.elements.namedItem("instagram") as HTMLInputElement
-                  ).value;
-                  const email = (
-                    form.elements.namedItem("email") as HTMLInputElement
-                  ).value;
-
-                  const settings = data.filter((d) => d.type === "setting");
-                  const updates = [
-                    { title: "github", link: github },
-                    { title: "linkedin", link: linkedin },
-                    { title: "instagram", link: instagram },
-                    { title: "email", link: email },
-                  ];
-
-                  for (const u of updates) {
-                    await upsertData("settings", { key: u.title, value: u.link }, "key");
-                  }
-                  alert("Pengaturan berhasil disimpan!");
-                  loadData();
-                }}
-                className="space-y-6"
-              >
-                {[
-                  {
-                    name: "github",
-                    label: "GitHub URL",
-                    placeholder: "https://github.com/...",
-                  },
-                  {
-                    name: "linkedin",
-                    label: "LinkedIn URL",
-                    placeholder: "https://linkedin.com/in/...",
-                  },
-                  {
-                    name: "instagram",
-                    label: "Instagram URL",
-                    placeholder: "https://instagram.com/...",
-                  },
-                  {
-                    name: "email",
-                    label: "Email Address",
-                    placeholder: "mailto:...",
-                  },
-                ].map((field) => {
-                  const existingValue =
-                    data.find(
-                      (d) => d.type === "setting" && d.title === field.name,
-                    )?.link || "";
-                  return (
-                    <div key={field.name}>
-                      <label className="block text-sm text-neutral-400 mb-1">
-                        {field.label}
-                      </label>
-                      <input
-                        name={field.name}
-                        type="text"
-                        defaultValue={existingValue}
-                        className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                        placeholder={field.placeholder}
-                      />
-                    </div>
-                  );
-                })}
-                <div className="pt-4 flex justify-end">
-                  <button
-                    type="submit"
-                    className="bg-purple-600 text-white font-medium rounded-xl px-8 py-3 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20"
-                  >
-                    Simpan Link Sosmed
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Organisasi Panel */}
-            <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl">
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Organisasi & Komunitas
-              </h2>
-              <p className="text-neutral-400 text-sm mb-6">
-                Add organizations or communities you have joined.
-              </p>
-
-              <form
-                key={editingOrg?.id || "new"}
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.target as HTMLFormElement;
-                  const nama = (
-                    form.elements.namedItem("org_name") as HTMLInputElement
-                  ).value;
-                  const role = (
-                    form.elements.namedItem("org_role") as HTMLInputElement
-                  ).value;
-                  const tahun = (
-                    form.elements.namedItem("org_year") as HTMLInputElement
-                  ).value;
-                  const icon = (
-                    form.elements.namedItem("org_icon") as HTMLInputElement
-                  ).value;
-
-                  if (editingOrg) {
-                    await updateData("organizations", editingOrg.id, {
-                      name: nama, period: tahun, icon_url: icon, role: role
-                    });
-                    setEditingOrg(null);
-                  } else {
-                    await insertData("organizations", {
-                      name: nama, period: tahun, icon_url: icon, role: role, sort_order: 0
-                    });
-                  }
-
-                  form.reset();
-                  loadData();
-                }}
-                className="flex flex-col gap-6 mb-8 p-6 bg-white/5 rounded-xl border border-white/10"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1.5">
-                      Organization Name
-                    </label>
-                    <input
-                      name="org_name"
-                      required
-                      type="text"
-                      defaultValue={editingOrg?.title || ""}
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
-                      placeholder="Misal: Google Developer Student Clubs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1.5">
-                      Posisi / Jabatan
-                    </label>
-                    <input
-                      name="org_role"
-                      required
-                      type="text"
-                      defaultValue={editingOrg?.description || ""}
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
-                      placeholder="Misal: Member / Ketua"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1.5">
-                      Year Aktif
-                    </label>
-                    <input
-                      name="org_year"
-                      required
-                      type="text"
-                      defaultValue={editingOrg?.position || ""}
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
-                      placeholder="Misal: 2023 - Sekarang"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1.5">
-                      URL Logo (Opsional)
-                    </label>
-                    <input
-                      name="org_icon"
-                      type="text"
-                      defaultValue={editingOrg?.image || ""}
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
-                      placeholder="https://..."
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 pt-2">
-                  {editingOrg && (
-                    <button
-                      type="button"
-                      onClick={() => setEditingOrg(null)}
-                      className="bg-white/10 text-white font-medium rounded-lg px-6 py-2.5 text-sm hover:bg-white/20 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    className="bg-purple-600 text-white font-medium rounded-lg px-6 py-2.5 text-sm hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20"
-                  >
-                    {editingOrg ? "Save Changes" : "Add Organization"}
-                  </button>
-                </div>
-              </form>
-
-              <div className="space-y-3">
-                {[...data]
-                  .filter((d) => d.type === "organization")
-                  .sort(
-                    (a, b) =>
-                      parseInt(a.link || "999") - parseInt(b.link || "999"),
-                  )
-                  .map((org) => (
-                    <div
-                      key={org.id}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", org.id.toString());
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const draggedId = Number(
-                          e.dataTransfer.getData("text/plain"),
-                        );
-                        if (!draggedId || draggedId === org.id) return;
-
-                        const currentOrg = [...data]
-                          .filter((d) => d.type === "organization")
-                          .sort(
-                            (a, b) =>
-                              parseInt(a.link || "999") -
-                              parseInt(b.link || "999"),
-                          );
-
-                        const draggedIdx = currentOrg.findIndex(
-                          (d) => d.id === draggedId,
-                        );
-                        const targetIdx = currentOrg.findIndex(
-                          (d) => d.id === org.id,
-                        );
-
-                        if (draggedIdx === -1 || targetIdx === -1) return;
-
-                        const draggedItemObj = currentOrg[draggedIdx];
-                        currentOrg.splice(draggedIdx, 1);
-                        currentOrg.splice(targetIdx, 0, draggedItemObj);
-
-                        const newData = data.map((d) => {
-                          if (d.type === "organization") {
-                            const index = currentOrg.findIndex(
-                              (t) => t.id === d.id,
-                            );
-                            return { ...d, link: index.toString() };
-                          }
-                          return d;
-                        });
-                        setData(newData);
-
-                        Promise.all(
-                          currentOrg.map((item, i) =>
-                            updateData("organizations", item.id, {
-                              sort_order: i,
-                            }),
-                          ),
-                        );
-                      }}
-                      className="flex items-center justify-between p-4 bg-[#1a1a1a] rounded-xl border border-white/5 cursor-move hover:border-purple-500/30 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="text-neutral-500 hover:text-white transition-colors px-2">
-                          <GripVertical size={20} />
-                        </div>
-                        {org.image ? (
-                          <img
-                            src={org.image}
-                            alt={org.title}
-                            className="w-10 h-10 rounded-full object-cover bg-white/10 p-1 shrink-0"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold shrink-0">
-                            {org.title.charAt(0)}
-                          </div>
-                        )}
-                        <div>
-                          <h4 className="text-white font-medium">
-                            {org.title}
-                          </h4>
-                          {org.description && (
-                            <p className="text-xs text-purple-400 mb-0.5">
-                              {org.description}
-                            </p>
-                          )}
-                          <p className="text-[10px] text-neutral-500">
-                            {org.position}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingOrg(org);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }}
-                          className="text-blue-400 hover:bg-blue-500/20 p-2 rounded-lg transition-colors"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(org.id)}
-                          className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            {/* Timeline Panel */}
-            <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl">
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Riwayat Pendidikan
-              </h2>
-              <p className="text-neutral-400 text-sm mb-6">
-                Tambahkan pengalaman karir atau perjalanan yang akan muncul di
-                timeline horizontal.
-              </p>
-
-              <form
-                key={editingTimeline?.id || "new"}
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.target as HTMLFormElement;
-                  const nama = (
-                    form.elements.namedItem("tl_name") as HTMLInputElement
-                  ).value;
-                  const tahun = (
-                    form.elements.namedItem("tl_year") as HTMLInputElement
-                  ).value;
-
-                  if (editingTimeline) {
-                    await updateData("timelines", editingTimeline.id, {
-                      name: nama, period: tahun
-                    });
-                    setEditingTimeline(null);
-                  } else {
-                    await insertData("timelines", {
-                      name: nama, period: tahun, sort_order: 0
-                    });
-                  }
-
-                  form.reset();
-                  loadData();
-                }}
-                className="flex flex-col gap-6 mb-8 p-6 bg-white/5 rounded-xl border border-white/10"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1.5">
-                      Nama Pengalaman / Acara
-                    </label>
-                    <input
-                      name="tl_name"
-                      required
-                      type="text"
-                      defaultValue={editingTimeline?.title || ""}
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
-                      placeholder="Misal: Juara 1 Web Design"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-400 mb-1.5">
-                      Waktu / Periode
-                    </label>
-                    <input
-                      name="tl_year"
-                      required
-                      type="text"
-                      defaultValue={editingTimeline?.position || ""}
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
-                      placeholder="Misal: 2026 - Sekarang"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 pt-2">
-                  {editingTimeline && (
-                    <button
-                      type="button"
-                      onClick={() => setEditingTimeline(null)}
-                      className="bg-white/10 text-white font-medium rounded-lg px-6 py-2.5 text-sm hover:bg-white/20 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    className="bg-purple-600 text-white font-medium rounded-lg px-6 py-2.5 text-sm hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20"
-                  >
-                    {editingTimeline ? "Save Changes" : "Add Experience"}
-                  </button>
-                </div>
-              </form>
-
-               <div className="space-y-3">
-                 {[...data]
-                   .filter((d) => d.type === "timeline")
-                   .sort((a, b) => a.sort_order - b.sort_order)
-                   .map((tl) => (
-                    <div
-                      key={tl.id}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", tl.id.toString());
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const draggedId = Number(
-                          e.dataTransfer.getData("text/plain"),
-                        );
-                        if (!draggedId || draggedId === tl.id) return;
-
-                        const currentTimeline = [...data]
-                          .filter((d) => d.type === "timeline")
-                          .sort((a, b) => a.sort_order - b.sort_order);
-
-                        const draggedIdx = currentTimeline.findIndex(
-                          (d) => d.id === draggedId,
-                        );
-                        const targetIdx = currentTimeline.findIndex(
-                          (d) => d.id === tl.id,
-                        );
-
-                        if (draggedIdx === -1 || targetIdx === -1) return;
-
-                        const draggedItemObj = currentTimeline[draggedIdx];
-                        currentTimeline.splice(draggedIdx, 1);
-                        currentTimeline.splice(targetIdx, 0, draggedItemObj);
-
-                        const newData = data.map((d) => {
-                          if (d.type === "timeline") {
-                            const index = currentTimeline.findIndex(
-                              (t) => t.id === d.id,
-                            );
-                            return { ...d, sort_order: index };
-                          }
-                          return d;
-                        });
-                        setData(newData);
-
-                        Promise.all(
-                          currentTimeline.map((item, i) =>
-                            updateData("timelines", item.id, {
-                              sort_order: i,
-                            }),
-                          ),
-                        );
-                      }}
-                      className="flex items-center justify-between p-4 bg-[#1a1a1a] rounded-xl border border-white/5 cursor-move hover:border-purple-500/30 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="text-neutral-500 hover:text-white transition-colors px-2">
-                          <GripVertical size={20} />
-                        </div>
-                        <div>
-                          <h4 className="text-white font-medium">{tl.title}</h4>
-                          <p className="text-[10px] text-purple-400 mt-1">
-                            {tl.position}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingTimeline(tl);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }}
-                          className="text-blue-400 hover:bg-blue-500/20 p-2 rounded-lg transition-colors"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(tl.id)}
-                          className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="max-w-5xl mx-auto">
-            {/* Header */}
-            <div className="flex justify-between items-end mb-8">
-              <div>
-                <h2 className="text-3xl font-bold text-white mb-2 capitalize">
-                  {activeTab}
-                </h2>
-                <p className="text-neutral-400 text-sm">
-                  Manage your {activeTab} data to be displayed on the home page
-                </p>
-              </div>
-              <button
-                onClick={openModal}
-                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-purple-500/20"
-              >
-                <Plus size={18} />
-                Add{" "}
-                {activeTab === "pengalaman"
-                  ? "Gallery"
-                  : activeTab === "sertifikat"
-                    ? "Certificate"
-                    : "Project"}
+              }} className="hover:text-red-400 transition-colors">
+                <X size={14} />
               </button>
             </div>
-
-            {/* Card List Area */}
-            <div className="space-y-3">
-              {isLoading ? (
-                <div className="bg-[#111] border border-white/5 rounded-2xl p-12 text-center text-neutral-500">
-                  Loading data...
-                </div>
-              ) : filteredData.length === 0 ? (
-                <div className="bg-[#111] border border-white/5 rounded-2xl p-12 text-center text-neutral-500">
-                  No {activeTab} data found.
-                </div>
-              ) : (
-                filteredData.map((item) => (
-                  <div
-                    key={item.id}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", item.id.toString());
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const draggedId = Number(e.dataTransfer.getData("text/plain"));
-                      if (!draggedId || draggedId === item.id) return;
-
-                      const currentItems = [...data]
-                        .filter((d) => d.type === activeTab)
-                        .sort((a, b) => a.sort_order - b.sort_order);
-
-                      const draggedIdx = currentItems.findIndex((d) => d.id === draggedId);
-                      const targetIdx = currentItems.findIndex((d) => d.id === item.id);
-
-                      if (draggedIdx === -1 || targetIdx === -1) return;
-
-                      const draggedItem = currentItems[draggedIdx];
-                      currentItems.splice(draggedIdx, 1);
-                      currentItems.splice(targetIdx, 0, draggedItem);
-
-                      const newData = data.map((d) => {
-                        if (d.type === activeTab) {
-                          const index = currentItems.findIndex((t) => t.id === d.id);
-                          return { ...d, sort_order: index };
-                        }
-                        return d;
-                      });
-                      setData(newData);
-
-                      let tableName = "";
-                      if (activeTab === "proyek") tableName = "projects";
-                      else if (activeTab === "pengalaman") tableName = "experiences";
-                      else if (activeTab === "sertifikat") tableName = "certificates";
-
-                      Promise.all(
-                        currentItems.map((itm, i) =>
-                          updateData(tableName, itm.id, { sort_order: i })
-                        )
-                      );
-                    }}
-                    className="flex items-center gap-4 p-4 bg-[#111] rounded-xl border border-white/5 cursor-move hover:border-purple-500/30 transition-colors"
-                  >
-                    <div className="text-neutral-500 hover:text-white transition-colors">
-                      <GripVertical size={20} />
-                    </div>
-                    <div className="w-20 h-14 bg-[#1a1a1a] rounded-lg border border-white/5 overflow-hidden relative flex-shrink-0">
-                      {item.image ? (
-                        <Image src={item.image} alt={item.title} fill className="object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-neutral-800 flex items-center justify-center text-neutral-500 text-xs">
-                          Img
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white mb-1 truncate">{item.title}</p>
-                      <p className="text-xs text-purple-400 truncate">
-                        {item.category ? item.category + (item.position ? ' - ' + item.position : '') : item.position}
-                      </p>
-                      <p className="text-neutral-400 text-xs mt-1 line-clamp-1">{item.description}</p>
-                    </div>
-                    {item.link && activeTab === "proyek" && (
-                      <a
-                        href={item.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-2 rounded-lg bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
-                      >
-                        <ExternalLink size={16} />
-                      </a>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="p-2 rounded-lg text-neutral-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="p-2 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Modal Tambah Data */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <div className="p-6 md:p-8">
-          <h2 className="text-2xl font-bold mb-6">
-            {editingId ? "Edit" : "Tambah"}{" "}
-            {activeTab === "pengalaman"
-              ? "Galeri"
-              : activeTab === "sertifikat"
-                ? "Sertifikat"
-                : "Proyek"}
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-neutral-400 mb-1">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                  placeholder="Contoh: Juara 1 Web Design"
-                />
-              </div>
-              {activeTab !== "proyek" && (
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-1">
-                    {activeTab === "sertifikat" ? "Issuer / Penyelenggara" : "Posisi / Peran (Opsional)"}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.position}
-                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                    placeholder={activeTab === "sertifikat" ? "Contoh: Dicoding, Coursera" : "Contoh: Peserta, Programmer"}
-                  />
-                </div>
-              )}
-            </div>
-
-
-            {["proyek", "pengalaman", "sertifikat"].includes(activeTab) && (
-              <div>
-                <label className="block text-sm text-neutral-400 mb-2">
-                  Kategori
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {globalCategories.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, category: cat })}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                        formData.category === cat
-                          ? "bg-purple-600 border-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]"
-                          : "bg-white/5 border-white/10 text-neutral-400 hover:text-white hover:border-white/20"
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === "pengalaman" && (
-              <label className="flex items-center gap-3 text-sm text-neutral-300">
-                <input
-                  type="checkbox"
-                  checked={formData.is_featured}
-                  onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
-                  className="h-4 w-4 accent-purple-600"
-                />
-                Tampilkan sebagai Featured Experience di Home
-              </label>
-            )}
-
-            <div>
-              <label className="block text-sm text-neutral-400 mb-1">
-                Description
-              </label>
-              <textarea
-                rows={3}
-                required
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                placeholder="Descriptionkan momen ini..."
-              />
-            </div>
-
-            {activeTab === "proyek" && (
-              <div>
-                <label className="block text-sm text-neutral-400 mb-2">
-                  Tech Stack (Opsional)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {globalTechs.map((tech) => (
-                    <button
-                      key={tech}
-                      type="button"
-                      onClick={() => {
-                        if (formData.tech.includes(tech)) {
-                          setFormData({
-                            ...formData,
-                            tech: formData.tech.filter((t) => t !== tech),
-                          });
-                        } else {
-                          setFormData({
-                            ...formData,
-                            tech: [...formData.tech, tech],
-                          });
-                        }
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                        formData.tech.includes(tech)
-                          ? "bg-purple-600 border-purple-500 text-white"
-                          : "bg-white/5 border-white/10 text-neutral-400 hover:text-white hover:border-white/20"
-                      }`}
-                    >
-                      {tech}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Dynamic Multi-Links for Proyek & Sertifikat */}
-            {["proyek", "sertifikat"].includes(activeTab) ? (
-              <div className="space-y-3">
-                <label className="block text-sm text-neutral-400 mb-1">
-                  Daftar Link (Opsional)
-                </label>
-                {formData.external_links.map((lnk, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
-                    <input
-                      type="text"
-                      value={lnk.label}
-                      onChange={(e) => {
-                        const newLinks = [...formData.external_links];
-                        newLinks[idx].label = e.target.value;
-                        setFormData({ ...formData, external_links: newLinks });
-                      }}
-                      placeholder="Label (ex: Play Store)"
-                      className="w-1/3 bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                    />
-                    <input
-                      type="url"
-                      value={lnk.url}
-                      onChange={(e) => {
-                        const newLinks = [...formData.external_links];
-                        newLinks[idx].url = e.target.value;
-                        setFormData({ ...formData, external_links: newLinks });
-                      }}
-                      placeholder="https://..."
-                      className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newLinks = formData.external_links.filter((_, i) => i !== idx);
-                        setFormData({ ...formData, external_links: newLinks });
-                      }}
-                      className="text-red-400 hover:bg-red-500/20 p-2 rounded-lg transition-colors"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData({ ...formData, external_links: [...formData.external_links, { label: "Kunjungi", url: "" }] });
-                  }}
-                  className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 font-medium px-2 py-1 rounded-lg hover:bg-purple-500/10 transition-colors"
-                >
-                  <Plus size={16} /> Tambah Link Baru
-                </button>
-              </div>
-            ) : activeTab === "sertifikat" ? (
-              <div>
-                <label className="block text-sm text-neutral-400 mb-1">
-                  Link (Opsional)
-                </label>
-                <input
-                  type="text"
-                  value={formData.link}
-                  onChange={(e) =>
-                    setFormData({ ...formData, link: e.target.value })
-                  }
-                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                  placeholder="https://..."
-                />
-              </div>
-            ) : null}
-
-            <div>
-              <label className="block text-sm text-neutral-400 mb-1">
-                Foto / Gambar
-              </label>
-              <label className="block border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-purple-500/50 transition-colors cursor-pointer bg-[#1a1a1a]">
-                {formData.image ? (
-                  <div className="relative w-full h-32 rounded-lg overflow-hidden">
-                    <Image
-                      src={formData.image}
-                      alt="Preview"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload size={24} className="text-neutral-500" />
-                    <p className="text-sm text-neutral-400">
-                      Klik untuk upload foto
-                    </p>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </label>
-            </div>
-
-            <div className="pt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl font-medium text-neutral-400 hover:bg-white/5 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="bg-purple-600 text-white font-medium rounded-xl px-6 py-2.5 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20"
-              >
-                Simpan
-              </button>
-            </div>
-          </form>
+          ))}
         </div>
-      </Modal>
+        
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const form = e.target as HTMLFormElement;
+          const input = form.elements.namedItem("new_tech") as HTMLInputElement;
+          if (!input.value.trim()) return;
+          const newTech = input.value.trim();
+          if (globalTechs.includes(newTech)) { alert("Tech Stack sudah ada!"); return; }
+          const newTechs = [...globalTechs, newTech];
+          await upsertData("settings", { key: "tech_stacks", value: newTechs.join(",") }, "key");
+          input.value = "";
+          loadData();
+        }} className="flex gap-3">
+          <input type="text" name="new_tech" placeholder="Tech Stack baru (ex: Prisma)..." className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors text-sm" />
+          <button type="submit" className="bg-purple-600 text-white font-medium rounded-xl px-6 py-3 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20 text-sm">
+            Tambah
+          </button>
+        </form>
+      </div>
 
-      {/* Modal Konfirmasi Delete */}
-      <Modal
-        isOpen={deleteConfirmId !== null}
-        onClose={() => setDeleteConfirmId(null)}
-      >
-        <div className="p-6 md:p-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto mb-6">
-            <Trash2 size={32} />
-          </div>
-          <h2 className="text-2xl font-bold mb-2 text-white">Delete Data</h2>
-          <p className="text-neutral-400 mb-8">
-            Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat
-            dibatalkan.
-          </p>
-          <div className="flex justify-center gap-3">
-            <button
-              onClick={() => setDeleteConfirmId(null)}
-              className="px-6 py-2.5 rounded-xl font-medium text-neutral-400 hover:bg-white/5 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={confirmDelete}
-              className="bg-red-500/10 text-red-400 font-medium rounded-xl px-6 py-2.5 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 hover:border-red-500"
-            >
-              Ya, Delete
+      {/* Sosmed */}
+      <div className="bg-[#111] p-8 rounded-2xl border border-white/5 shadow-2xl">
+        <h2 className="text-2xl font-bold text-white mb-2">Pengaturan Link Sosial Media</h2>
+        <p className="text-neutral-400 text-sm mb-8">Atur link tujuan untuk icon sosmed yang tampil di halaman beranda.</p>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const form = e.target as HTMLFormElement;
+          const github = (form.elements.namedItem("github") as HTMLInputElement).value;
+          const linkedin = (form.elements.namedItem("linkedin") as HTMLInputElement).value;
+          const instagram = (form.elements.namedItem("instagram") as HTMLInputElement).value;
+          const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+
+          const updates = [
+            { title: "github", link: github },
+            { title: "linkedin", link: linkedin },
+            { title: "instagram", link: instagram },
+            { title: "email", link: email },
+          ];
+
+          for (const u of updates) {
+            await upsertData("settings", { key: u.title, value: u.link }, "key");
+          }
+          alert("Pengaturan berhasil disimpan!");
+          loadData();
+        }} className="space-y-6">
+          {[
+            { name: "github", label: "GitHub URL", placeholder: "https://github.com/..." },
+            { name: "linkedin", label: "LinkedIn URL", placeholder: "https://linkedin.com/in/..." },
+            { name: "instagram", label: "Instagram URL", placeholder: "https://instagram.com/..." },
+            { name: "email", label: "Email Address", placeholder: "mailto:..." },
+          ].map((field) => {
+            const existingValue = data.find((d) => d.type === "setting" && d.title === field.name)?.link || "";
+            return (
+              <div key={field.name}>
+                <label className="block text-sm text-neutral-400 mb-1">{field.label}</label>
+                <input name={field.name} type="text" defaultValue={existingValue} className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 transition-colors" placeholder={field.placeholder} />
+              </div>
+            );
+          })}
+          <div className="pt-4 flex justify-end">
+            <button type="submit" className="bg-purple-600 text-white font-medium rounded-xl px-8 py-3 hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20">
+              Simpan Link Sosmed
             </button>
           </div>
-        </div>
-      </Modal>
+        </form>
+      </div>
     </div>
   );
 }
