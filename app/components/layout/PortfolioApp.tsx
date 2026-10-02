@@ -80,6 +80,8 @@ export default function PortfolioApp({ initialView = "home" }: PortfolioAppProps
         const exps = (eRes.data || []).map((item) => ({
           ...item,
           img: item.image_url,
+          description: item.description,
+          is_featured: item.is_featured,
         }));
         setExperiences(exps as any);
 

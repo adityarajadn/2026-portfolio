@@ -40,6 +40,7 @@ interface PortfolioItem {
   image: string;
   tech?: string[];
   external_links?: {label: string, url: string}[];
+  is_featured?: boolean;
 }
 
 export default function DashboardPage() {
@@ -59,6 +60,7 @@ export default function DashboardPage() {
     image: "",
     tech: [] as string[],
     external_links: [] as {label: string, url: string}[],
+    is_featured: false,
     file: null as File | null,
   });
 
@@ -85,7 +87,7 @@ export default function DashboardPage() {
 
     const normalized = [
       ...pRes.map((p: any) => ({ id: p.id, type: 'proyek', title: p.title, position: p.category || '', category: p.category || '', description: p.description || '', link: p.demo_url || '', sort_order: p.sort_order || 0, image: p.image_url || '', tech: p.tech_stack || [], external_links: p.external_links || [] })),
-      ...eRes.map((e: any) => ({ id: e.id, type: 'pengalaman', title: e.title, position: '', category: e.category || '', description: e.description || '', link: '', sort_order: e.sort_order || 0, image: e.image_url || '' })),
+      ...eRes.map((e: any) => ({ id: e.id, type: 'pengalaman', title: e.title, position: '', category: e.category || '', description: e.description || '', link: '', sort_order: e.sort_order || 0, image: e.image_url || '', is_featured: e.is_featured || false })),
       ...cRes.map((c: any) => ({ id: c.id, type: 'sertifikat', title: c.title, position: c.issuer || '', category: c.category || '', description: c.issuer || '', link: '', sort_order: c.sort_order || 0, image: c.image_url || '', external_links: c.external_links || [] })),
       ...oRes.map((o: any) => ({ id: o.id, type: 'organization', title: o.name, position: o.period || '', description: o.role || '', link: '', sort_order: o.sort_order || 0, image: o.icon_url || '' })),
       ...tRes.map((t: any) => ({ id: t.id, type: 'timeline', title: t.name, position: t.period || '', description: '', link: '', sort_order: t.sort_order || 0, image: '' })),
@@ -131,7 +133,7 @@ export default function DashboardPage() {
       payload = { title: formData.title, category: formData.category, description: formData.description, demo_url: formData.link, image_url: imageUrl, tech_stack: formData.tech, external_links: formData.external_links };
     } else if (activeTab === "pengalaman") {
       tableName = "experiences";
-      payload = { title: formData.title, category: formData.category, description: formData.description, image_url: imageUrl, sort_order: parseInt(formData.link || "0") };
+      payload = { title: formData.title, category: formData.category, description: formData.description, image_url: imageUrl, sort_order: parseInt(formData.link || "0"), is_featured: formData.is_featured };
     } else if (activeTab === "sertifikat") {
       tableName = "certificates";
       payload = { title: formData.title, category: formData.category, issuer: formData.position, image_url: imageUrl, sort_order: parseInt(formData.link || "0"), external_links: formData.external_links };
@@ -182,6 +184,7 @@ export default function DashboardPage() {
       image: "",
       tech: [],
       external_links: [],
+      is_featured: false,
       file: null,
     });
     setIsModalOpen(true);
@@ -198,6 +201,7 @@ export default function DashboardPage() {
       image: item.image || "",
       tech: item.tech || [],
       external_links: item.external_links || [],
+      is_featured: item.is_featured || false,
       file: null,
     });
     setIsModalOpen(true);
@@ -1087,6 +1091,18 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {activeTab === "pengalaman" && (
+              <label className="flex items-center gap-3 text-sm text-neutral-300">
+                <input
+                  type="checkbox"
+                  checked={formData.is_featured}
+                  onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                  className="h-4 w-4 accent-purple-600"
+                />
+                Tampilkan sebagai Featured Experience di Home
+              </label>
             )}
 
             <div>

@@ -46,6 +46,8 @@ interface Experience {
   id?: string;
   title: string;
   img: string;
+  description?: string;
+  is_featured?: boolean;
 }
 
 interface Certificate {
@@ -130,62 +132,87 @@ export default function HomeSection({
       {/* HERO */}
       <section
         id="home"
-        className="min-h-screen pt-40 pb-20 px-4 md:px-12 flex flex-col items-center justify-center relative text-center"
+        className="min-h-screen pt-40 pb-20 px-4 md:px-12 flex flex-col items-center justify-center relative overflow-hidden text-left"
       >
         <ScrollReveal>
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-tighter text-white leading-[1.1] mb-6">
-            Aditya Rajadana Hernadi
-          </h1>
-          <div className="text-lg md:text-xl text-neutral-400 max-w-2xl mx-auto font-light mb-10 min-h-[3rem]">
-            I am a{" "}
-            <TypingEffect
-              words={["UI/UX Designer", "Frontend Developer", "Game Developer"]}
-              speed={100}
-              delay={1500}
-            />
-          </div>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <button
-              id="hero-projects-btn"
-              onClick={() => onNavigate("projects")}
-              className="px-8 py-3.5 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-500 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"
-            >
-              View Projects
-            </button>
-            <div className="flex items-center gap-3">
-              <a
-                href={getSettingLink("github", "#")}
-                target="_blank"
-                rel="noreferrer"
-                className="p-3.5 bg-white/5 border border-white/10 text-white rounded-full hover:bg-white/10 hover:text-white transition-all shadow-lg"
-                aria-label="Github"
+          <div className="relative z-10 max-w-3xl">
+            <h1 className="text-5xl md:text-7xl font-medium tracking-tighter text-white leading-[1.1] mb-6">
+              Aditya Rajadana Hernadi
+            </h1>
+            <div className="text-lg md:text-xl text-neutral-400 max-w-2xl font-light mb-10 min-h-[3rem]">
+              I am a{" "}
+              <TypingEffect
+                words={["UI/UX Designer", "Frontend Developer", "Game Developer"]}
+                speed={100}
+                delay={1500}
+              />
+            </div>
+            <div className="flex flex-wrap gap-4 justify-start">
+              <button
+                id="hero-projects-btn"
+                onClick={() => onNavigate("projects")}
+                className="px-8 py-3.5 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-500 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"
               >
-                <GithubIcon size={20} />
-              </a>
-              <a
-                href={getSettingLink("linkedin", "#")}
-                target="_blank"
-                rel="noreferrer"
-                className="p-3.5 bg-white/5 border border-white/10 text-white rounded-full hover:bg-white/10 hover:text-blue-400 transition-all shadow-lg"
-                aria-label="LinkedIn"
-              >
-                <LinkedinIcon size={20} />
-              </a>
-              <a
-                href={getSettingLink("instagram", "#")}
-                target="_blank"
-                rel="noreferrer"
-                className="p-3.5 bg-white/5 border border-white/10 text-white rounded-full hover:bg-white/10 hover:text-pink-400 transition-all shadow-lg"
-                aria-label="Instagram"
-              >
-                <InstagramIcon size={20} />
-              </a>
+                View Projects
+              </button>
+              <div className="flex items-center gap-3">
+                <a
+                  href={getSettingLink("github", "#")}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3.5 bg-white/5 border border-white/10 text-white rounded-full hover:bg-white/10 hover:text-white transition-all shadow-lg"
+                  aria-label="Github"
+                >
+                  <GithubIcon size={20} />
+                </a>
+                <a
+                  href={getSettingLink("linkedin", "#")}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3.5 bg-white/5 border border-white/10 text-white rounded-full hover:bg-white/10 hover:text-blue-400 transition-all shadow-lg"
+                  aria-label="LinkedIn"
+                >
+                  <LinkedinIcon size={20} />
+                </a>
+                <a
+                  href={getSettingLink("instagram", "#")}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3.5 bg-white/5 border border-white/10 text-white rounded-full hover:bg-white/10 hover:text-pink-400 transition-all shadow-lg"
+                  aria-label="Instagram"
+                >
+                  <InstagramIcon size={20} />
+                </a>
+              </div>
             </div>
           </div>
         </ScrollReveal>
 
+        {(() => {
+          const featuredExp = experiences.find(e => e.is_featured) || experiences[0];
+          if (!featuredExp) return null;
+          return (
+            <div 
+              className="absolute right-0 top-0 bottom-0 w-[55%] pointer-events-none overflow-hidden hidden lg:block z-0"
+            >
+              <img
+                src={featuredExp.img}
+                alt={featuredExp.title}
+                className="w-full h-full object-cover object-center opacity-60 hover:opacity-80 transition-opacity duration-700 pointer-events-auto cursor-pointer"
+                onClick={() => onSelectItem(featuredExp)}
+                style={{
+                  maskImage: "linear-gradient(to right, transparent 0%, black 40%, black 100%), linear-gradient(to top, transparent 0%, black 25%)",
+                  WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 40%, black 100%), linear-gradient(to top, transparent 0%, black 25%)",
+                  maskComposite: "intersect",
+                  WebkitMaskComposite: "source-in",
+                }}
+              />
+            </div>
+          );
+        })()}
+
         <ScrollReveal delay={200}>
-          <div className="mt-24 w-full max-w-6xl mx-auto overflow-hidden relative">
+          <div className="mt-24 w-full max-w-6xl mx-auto overflow-hidden relative z-10">
             <div className="animate-marquee py-8">
               {(companies.length > 0 ? [...companies, ...companies] : []).map(
                 (comp, idx) => (
